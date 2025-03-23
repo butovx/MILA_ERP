@@ -1,17 +1,6 @@
 import { Pool } from "pg";
 import supabase from "./supabase";
-import https from "https";
-// Импортируем node-fetch для серверной части и используем нативный fetch в браузере
 import fetch from "node-fetch";
-import type { Response } from "node-fetch";
-
-// Определяем универсальную fetch-функцию
-const universalFetch = typeof window === "undefined" ? fetch : global.fetch;
-
-// Настраиваем SSL для Node.js в продакшене
-if (process.env.NODE_ENV === "production") {
-  https.globalAgent.options.rejectUnauthorized = false;
-}
 
 // Функция для прямого вызова Supabase API, минуя клиентскую библиотеку
 async function directSupabaseRPC(functionName: string, params: any) {
@@ -28,8 +17,8 @@ async function directSupabaseRPC(functionName: string, params: any) {
   try {
     console.log(`Прямой вызов ${functionName} через fetch`);
 
-    // Настраиваем опции запроса
-    const fetchOptions: any = {
+    // Выполняем запрос напрямую к API
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -37,23 +26,11 @@ async function directSupabaseRPC(functionName: string, params: any) {
         Authorization: `Bearer ${supabaseKey}`,
       },
       body: JSON.stringify(params),
-    };
-
-    // Только для сервера добавляем спец. опции для обхода SSL
-    if (typeof window === "undefined") {
-      fetchOptions.agent = new https.Agent({
-        rejectUnauthorized: false,
-      });
-    }
-
-    // Выполняем запрос напрямую к API используя универсальную функцию
-    const response = await universalFetch(
-      `${supabaseUrl}/rest/v1/rpc/${functionName}`,
-      fetchOptions
-    );
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`Ошибка API: ${response.status} ${errorText}`);
       throw new Error(`Ошибка API: ${response.status} ${errorText}`);
     }
 
@@ -102,9 +79,6 @@ if (process.env.USE_SUPABASE === "true") {
   // Подключение через строку подключения Vercel Postgres или другой сервис
   poolConfig = {
     connectionString: process.env.POSTGRES_URL,
-    ssl: {
-      rejectUnauthorized: false, // Пропускаем проверку SSL сертификатов
-    },
   };
   pool = new Pool(poolConfig);
 } else if (

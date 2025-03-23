@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { generateEAN13 } from "@/utils/barcode";
 import { uploadFiles } from "@/lib/upload";
-import https from "https";
-// Импортируем настройки SSL
-import "@/lib/security";
 
 // Добавление нового товара
 export async function POST(request: NextRequest) {
@@ -76,48 +73,23 @@ export async function POST(request: NextRequest) {
 // Получение списка всех товаров
 export async function GET() {
   try {
-    // Создаем безопасное подключение для этого запроса
-    const agent = new https.Agent({
-      rejectUnauthorized: false,
-    });
+    console.log("Запрос списка товаров через обновленный API");
 
-    // Запрос к базе данных
+    // Простой запрос к базе данных через наш обновленный пул
     const result = await pool.query(
       "SELECT * FROM products ORDER BY updated_at DESC"
     );
+
     return NextResponse.json(result.rows);
   } catch (error: any) {
     console.error("Ошибка при получении списка товаров:", error);
 
-    // Если ошибка связана с SSL, пробуем другой подход
-    if (error.code === "SELF_SIGNED_CERT_IN_CHAIN") {
-      console.log("Обнаружена ошибка SSL. Обрабатываем...");
-
-      try {
-        // Повторный запрос после установки агента
-        const agent = new https.Agent({
-          rejectUnauthorized: false,
-        });
-
-        global.fetch = (url: any, init: any) => {
-          return fetch(url, { ...init, agent });
-        };
-
-        const result = await pool.query(
-          "SELECT * FROM products ORDER BY updated_at DESC"
-        );
-        return NextResponse.json(result.rows);
-      } catch (retryError) {
-        console.error("Повторная ошибка после настройки SSL:", retryError);
-        return NextResponse.json(
-          { error: "Ошибка базы данных при повторной попытке" },
-          { status: 500 }
-        );
-      }
-    }
-
+    // Возвращаем подробную информацию об ошибке для отладки
     return NextResponse.json(
-      { error: `Ошибка базы данных: ${error.message}` },
+      {
+        error: `Ошибка базы данных: ${error.message}`,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
       { status: 500 }
     );
   }
