@@ -11,7 +11,18 @@ if (!supabaseUrl || !supabaseKey) {
   );
 }
 
-// Создаем клиент Supabase
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Настройка обхода проверки SSL
+// Установка переменной окружения NODE_TLS_REJECT_UNAUTHORIZED
+if (typeof process !== "undefined") {
+  // Это выполнится только на сервере
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
+
+// Создаем клиент Supabase с дополнительными опциями
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+  },
+});
 
 export default supabase;

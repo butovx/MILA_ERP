@@ -54,7 +54,7 @@ if (process.env.USE_SUPABASE === "true") {
   poolConfig = {
     connectionString: process.env.POSTGRES_URL,
     ssl: {
-      rejectUnauthorized: false,
+      rejectUnauthorized: false, // Пропускаем проверку SSL сертификатов
     },
   };
   pool = new Pool(poolConfig);

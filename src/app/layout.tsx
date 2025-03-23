@@ -3,6 +3,7 @@ import "./globals.css";
 import MainNav from "@/components/MainNav";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { themeScript } from "./theme-script";
+import "@/lib/security";
 
 export const metadata: Metadata = {
   title: "MILA ERP",
