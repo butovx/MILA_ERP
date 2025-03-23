@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-interface Params {
+// Используем правильную типизацию для App Router Next.js
+type RouteParams = {
   params: {
     boxId: string;
     productId: string;
   };
-}
+};
 
 // PUT /api/box-items/[boxId]/[productId] - обновить количество товара в коробке
-export async function PUT(request: NextRequest, { params }: Params) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const boxId = (await params).boxId;
-    const productId = (await params).productId;
+    const boxId = params.boxId;
+    const productId = params.productId;
     const { quantity } = await request.json();
 
     // Валидация входных данных
@@ -56,10 +57,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 // DELETE /api/box-items/[boxId]/[productId] - удалить товар из коробки
-export async function DELETE(request: NextRequest, { params }: Params) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const boxId = (await params).boxId;
-    const productId = (await params).productId;
+    const boxId = params.boxId;
+    const productId = params.productId;
 
     // Проверяем существование записи
     const existingItemResult = await pool.query(

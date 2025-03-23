@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-interface Params {
+// Используем правильную типизацию для App Router Next.js
+type RouteParams = {
   params: {
     barcode: string;
   };
-}
+};
 
 // GET /api/boxes/barcode/[barcode] - получить коробку по штрихкоду
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { barcode } = params;
+    const barcode = params.barcode;
 
     // Валидация штрихкода
     if (!barcode) {

@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { uploadFiles } from "@/lib/upload";
 
-interface Params {
+// Используем правильную типизацию для App Router Next.js
+type RouteParams = {
   params: {
     id: string;
   };
-}
+};
 
 // Получение информации о товаре по ID
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const id = (await params).id;
+    const id = params.id;
 
     const result = await pool.query("SELECT * FROM products WHERE id = $1", [
       id,
@@ -45,9 +46,9 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 // Обновление товара
-export async function PUT(request: NextRequest, { params }: Params) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const id = (await params).id;
+    const id = params.id;
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const quantity = formData.get("quantity") as string;
@@ -118,9 +119,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 // Удаление товара
-export async function DELETE(request: NextRequest, { params }: Params) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const id = (await params).id;
+    const id = params.id;
 
     // Проверяем, есть ли товар в коробках
     const boxItemsResult = await pool.query(
