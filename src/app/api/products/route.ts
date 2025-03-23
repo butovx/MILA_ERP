@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import pool from "@/lib/db";
+import pool, { Pool } from "@/lib/db";
 import { generateEAN13 } from "@/utils/barcode";
 import { uploadFiles } from "@/lib/upload";
+import https from "https";
 
 // Добавление нового товара
 export async function POST(request: NextRequest) {
@@ -84,11 +85,44 @@ export async function GET() {
   } catch (error: any) {
     console.error("Ошибка при получении списка товаров:", error);
 
+    // Особая обработка для ошибки SSL-сертификата
+    if (error.code === "SELF_SIGNED_CERT_IN_CHAIN") {
+      console.log("Обнаружена ошибка SSL, пробуем резервный подход...");
+
+      try {
+        // Создаем пул напрямую с параметрами SSL
+        const directPool = new Pool({
+          connectionString: process.env.POSTGRES_URL,
+          ssl: {
+            rejectUnauthorized: false,
+          },
+        });
+
+        // Выполняем запрос напрямую
+        const result = await directPool.query(
+          "SELECT * FROM products ORDER BY updated_at DESC"
+        );
+
+        console.log("Резервный запрос выполнен успешно");
+        return NextResponse.json(result.rows);
+      } catch (backupError: any) {
+        console.error("Ошибка при резервном подходе:", backupError);
+        return NextResponse.json(
+          {
+            error: `Ошибка резервного подхода: ${backupError.message}`,
+            originalError: error.message,
+          },
+          { status: 500 }
+        );
+      }
+    }
+
     // Возвращаем подробную информацию об ошибке для отладки
     return NextResponse.json(
       {
         error: `Ошибка базы данных: ${error.message}`,
         stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+        code: error.code,
       },
       { status: 500 }
     );

@@ -1,6 +1,12 @@
 import { Pool } from "pg";
 import supabase from "./supabase";
 import fetch from "node-fetch";
+import https from "https";
+
+// Создаем агент для игнорирования SSL-ошибок (только для серверной части)
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false,
+});
 
 // Функция для прямого вызова Supabase API, минуя клиентскую библиотеку
 async function directSupabaseRPC(functionName: string, params: any) {
@@ -17,7 +23,7 @@ async function directSupabaseRPC(functionName: string, params: any) {
   try {
     console.log(`Прямой вызов ${functionName} через fetch`);
 
-    // Выполняем запрос напрямую к API
+    // Выполняем запрос напрямую к API с использованием агента для игнорирования SSL-ошибок
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
       method: "POST",
       headers: {
@@ -26,6 +32,8 @@ async function directSupabaseRPC(functionName: string, params: any) {
         Authorization: `Bearer ${supabaseKey}`,
       },
       body: JSON.stringify(params),
+      // @ts-ignore - типы не совпадают, но это работает
+      agent: typeof window === "undefined" ? httpsAgent : undefined,
     });
 
     if (!response.ok) {
@@ -118,4 +126,5 @@ function processQueryResult(data: any) {
   };
 }
 
+export { Pool };
 export default pool;
