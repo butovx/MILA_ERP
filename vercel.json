@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "regions": ["fra1"],
+  "functions": {
+    "api/**/*": {
+      "memory": 1024
+    }
+  }
+}
