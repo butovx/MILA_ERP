@@ -1,4 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MILA ERP Next.js
+
+Система управления складом и товарами, созданная с использованием Next.js, PostgreSQL и Tailwind CSS.
+
+## Деплой на Vercel
+
+Ветка `vercel-deploy` оптимизирована для быстрого деплоя на Vercel.
+
+### Шаги для деплоя
+
+1. **Создайте аккаунт на Vercel**
+
+   - Зарегистрируйтесь на [vercel.com](https://vercel.com)
+
+2. **Настройте проект на Vercel**
+
+   - Импортируйте репозиторий из GitHub/GitLab/Bitbucket
+   - Выберите ветку `vercel-deploy`
+   - Следуйте инструкциям мастера настройки
+
+3. **Добавьте PostgreSQL**
+
+   - В панели управления проектом перейдите в Storage
+   - Добавьте Vercel Postgres
+   - Переменные окружения будут добавлены автоматически
+
+4. **Настройте Vercel Blob**
+
+   - В панели управления проектом перейдите в Storage
+   - Добавьте Vercel Blob
+   - Скопируйте токен доступа
+
+5. **Настройте переменные окружения**
+
+   - В настройках проекта добавьте:
+     - `BLOB_READ_WRITE_TOKEN` - из Vercel Blob
+     - `NEXT_PUBLIC_API_URL` - URL вашего приложения (например, https://your-app.vercel.app)
+
+6. **Инициализируйте базу данных**
+   - После деплоя запустите команду:
+     ```
+     npx vercel run setup-db
+     ```
+
+## Локальная разработка
+
+```bash
+# Клонирование репозитория
+git clone <repo-url>
+cd mila_erp_next
+
+# Установка зависимостей
+npm install
+
+# Запуск в режиме разработки
+npm run dev
+```
+
+## Переменные окружения
+
+Для локальной разработки скопируйте `.env.example` в файл `.env` и заполните необходимые переменные:
+
+```
+DB_USER=postgres
+DB_HOST=localhost
+DB_NAME=shop
+DB_PASSWORD=postgres
+DB_PORT=5432
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_token
+```
+
+## Технологии
+
+- Next.js 15.2
+- PostgreSQL
+- Tailwind CSS
+- Vercel Blob для хранения файлов
 
 ## Getting Started
 
