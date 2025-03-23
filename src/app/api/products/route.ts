@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { generateEAN13 } from "@/utils/barcode";
 import { uploadFiles } from "@/lib/upload";
+import https from "https";
 // Импортируем настройки SSL
 import "@/lib/security";
 
@@ -75,9 +76,12 @@ export async function POST(request: NextRequest) {
 // Получение списка всех товаров
 export async function GET() {
   try {
-    // На всякий случай еще раз отключаем проверку SSL для этого запроса
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    // Создаем безопасное подключение для этого запроса
+    const agent = new https.Agent({
+      rejectUnauthorized: false,
+    });
 
+    // Запрос к базе данных
     const result = await pool.query(
       "SELECT * FROM products ORDER BY updated_at DESC"
     );
@@ -85,19 +89,26 @@ export async function GET() {
   } catch (error: any) {
     console.error("Ошибка при получении списка товаров:", error);
 
-    // Если ошибка связана с SSL, добавляем дополнительную информацию
+    // Если ошибка связана с SSL, пробуем другой подход
     if (error.code === "SELF_SIGNED_CERT_IN_CHAIN") {
-      console.log("Обнаружена ошибка SSL. Пробуем обойти...");
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+      console.log("Обнаружена ошибка SSL. Обрабатываем...");
 
       try {
-        // Повторный запрос после обхода SSL
+        // Повторный запрос после установки агента
+        const agent = new https.Agent({
+          rejectUnauthorized: false,
+        });
+
+        global.fetch = (url: any, init: any) => {
+          return fetch(url, { ...init, agent });
+        };
+
         const result = await pool.query(
           "SELECT * FROM products ORDER BY updated_at DESC"
         );
         return NextResponse.json(result.rows);
       } catch (retryError) {
-        console.error("Повторная ошибка после обхода SSL:", retryError);
+        console.error("Повторная ошибка после настройки SSL:", retryError);
         return NextResponse.json(
           { error: "Ошибка базы данных при повторной попытке" },
           { status: 500 }

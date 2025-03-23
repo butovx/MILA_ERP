@@ -18,11 +18,6 @@ const nextConfig: NextConfig = {
     // serverComponentsExternalPackages: ["sharp"],
   },
   serverExternalPackages: ["sharp"],
-  // Разрешаем HTTP запросы с самоподписанными SSL-сертификатами
-  // только для продакшен-среды в Vercel
-  env: {
-    NODE_TLS_REJECT_UNAUTHORIZED: "0",
-  },
 };
 
 export default nextConfig;

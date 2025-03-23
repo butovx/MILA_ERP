@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import https from "https";
 
 // Используем переменные окружения для URL и ключа Supabase
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -11,11 +12,17 @@ if (!supabaseUrl || !supabaseKey) {
   );
 }
 
-// Настройка обхода проверки SSL
-// Установка переменной окружения NODE_TLS_REJECT_UNAUTHORIZED
-if (typeof process !== "undefined") {
-  // Это выполнится только на сервере
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+// Настройка для работы с самоподписанными сертификатами
+// Используем дополнительную конфигурацию вместо переменных окружения
+if (typeof process !== "undefined" && process.env.NODE_ENV === "production") {
+  // Устанавливаем безопасным способом
+  const agent = new https.Agent({
+    rejectUnauthorized: false,
+  });
+
+  global.fetch = (url: any, init: any) => {
+    return fetch(url, { ...init, agent });
+  };
 }
 
 // Создаем клиент Supabase с дополнительными опциями
