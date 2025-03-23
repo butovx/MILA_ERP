@@ -53,6 +53,13 @@ async function directSupabaseRPC(functionName: string, params: any) {
 let poolConfig: any = {};
 let pool: Pool;
 
+// SSL конфигурация, которая должна работать на Vercel
+const sslConfig = {
+  ssl: {
+    rejectUnauthorized: false,
+  },
+};
+
 // В зависимости от окружения используем разные подходы к подключению
 if (process.env.USE_SUPABASE === "true") {
   console.log("Используем Supabase для запросов к БД");
@@ -87,8 +94,16 @@ if (process.env.USE_SUPABASE === "true") {
   // Подключение через строку подключения Vercel Postgres или другой сервис
   poolConfig = {
     connectionString: process.env.POSTGRES_URL,
+    ...sslConfig, // Добавляем SSL настройки
   };
+
+  console.log("Создание пула с SSL настройками:", JSON.stringify(poolConfig));
   pool = new Pool(poolConfig);
+
+  // Проверяем соединение
+  pool.on("error", (err) => {
+    console.error("Неожиданная ошибка в пуле соединений:", err);
+  });
 } else if (
   process.env.DB_USER &&
   process.env.DB_HOST &&
@@ -103,6 +118,7 @@ if (process.env.USE_SUPABASE === "true") {
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
     port: parseInt(process.env.DB_PORT, 10),
+    ...sslConfig, // Добавляем SSL настройки для всех типов соединений
   };
   pool = new Pool(poolConfig);
 } else {
