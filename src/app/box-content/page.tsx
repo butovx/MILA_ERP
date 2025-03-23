@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,7 +12,27 @@ import {
 import ProductImage from "@/components/ProductImage";
 import { Box, Product, BoxItem } from "@/types";
 
+// Компонент-страница, который будет отрендерен сервером
 export default function BoxContentPage() {
+  return (
+    <Suspense fallback={<BoxContentLoading />}>
+      <BoxContentClient />
+    </Suspense>
+  );
+}
+
+// Компонент загрузки
+function BoxContentLoading() {
+  return (
+    <div className="py-8 px-4 flex flex-col items-center">
+      <div className="inline-block animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+      <p className="mt-2 text-gray-600">Загрузка содержимого коробки...</p>
+    </div>
+  );
+}
+
+// Основной клиентский компонент с доступом к поисковым параметрам
+function BoxContentClient() {
   const searchParams = useSearchParams();
   const boxId = searchParams.get("id");
   const boxBarcode = searchParams.get("barcode");
@@ -42,36 +62,34 @@ export default function BoxContentPage() {
     if (boxId || boxBarcode) {
       fetchBoxContent();
     } else {
-      setError("Не указан идентификатор или штрихкод коробки");
+      setError("Необходимо указать ID или штрихкод коробки");
       setLoading(false);
     }
   }, [boxId, boxBarcode]);
 
   const fetchBoxContent = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-
-      let url = "";
+      let response;
       if (boxId) {
-        url = `/api/boxes/${boxId}`;
+        response = await fetch(`/api/boxes/${boxId}`);
       } else if (boxBarcode) {
-        url = `/api/boxes/barcode/${boxBarcode}`;
+        response = await fetch(`/api/boxes/barcode/${boxBarcode}`);
+      } else {
+        throw new Error("Необходимо указать ID или штрихкод коробки");
       }
 
-      const response = await fetch(url);
-
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error("Коробка не найдена");
-        }
-        throw new Error("Ошибка при получении данных");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Ошибка загрузки данных коробки");
       }
 
       const data = await response.json();
       setBox(data);
-    } catch (err) {
-      setError("Не удалось загрузить содержимое коробки");
-      console.error(err);
+    } catch (err: any) {
+      setError(err.message);
+      console.error("Ошибка при загрузке содержимого коробки:", err);
     } finally {
       setLoading(false);
     }
@@ -79,35 +97,21 @@ export default function BoxContentPage() {
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!box) return;
-
-    if (!productBarcode.trim()) {
-      setAddItemResult({ success: false, message: "Введите штрихкод товара" });
-      return;
-    }
-
-    if (!productQuantity.trim() || parseInt(productQuantity) <= 0) {
-      setAddItemResult({
-        success: false,
-        message: "Количество должно быть больше 0",
-      });
-      return;
-    }
+    if (!box || !productBarcode || !productQuantity) return;
 
     setAddItemLoading(true);
     setAddItemResult(null);
 
     try {
-      const response = await fetch(`/api/box-items`, {
+      const response = await fetch("/api/box-items", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          box_id: box.id,
-          product_barcode: productBarcode,
-          quantity: parseInt(productQuantity),
+          boxId: box.id,
+          productBarcode,
+          quantity: parseInt(productQuantity, 10),
         }),
       });
 
@@ -116,11 +120,12 @@ export default function BoxContentPage() {
       if (response.ok) {
         setAddItemResult({
           success: true,
-          message: "Товар добавлен в коробку",
+          message: "Товар успешно добавлен в коробку",
         });
         setProductBarcode("");
         setProductQuantity("1");
-        fetchBoxContent(); // Обновляем содержимое коробки
+        // Обновляем содержимое коробки
+        fetchBoxContent();
       } else {
         setAddItemResult({
           success: false,
@@ -130,17 +135,18 @@ export default function BoxContentPage() {
     } catch (error) {
       setAddItemResult({
         success: false,
-        message: "Произошла ошибка при отправке формы",
+        message: "Произошла ошибка при отправке запроса",
       });
-      console.error("Ошибка при отправке формы:", error);
+      console.error("Ошибка при добавлении товара:", error);
     } finally {
       setAddItemLoading(false);
     }
   };
 
   const handleRemoveItem = async (boxId: number, productId: number) => {
-    if (!confirm("Вы действительно хотите удалить этот товар из коробки?"))
+    if (!confirm("Вы уверены, что хотите удалить этот товар из коробки?")) {
       return;
+    }
 
     try {
       const response = await fetch(`/api/box-items/${boxId}/${productId}`, {
@@ -151,12 +157,12 @@ export default function BoxContentPage() {
         // Обновляем содержимое коробки
         fetchBoxContent();
       } else {
-        const data = await response.json();
-        alert(data.error || "Ошибка при удалении товара из коробки");
+        const result = await response.json();
+        alert(result.error || "Ошибка при удалении товара");
       }
     } catch (error) {
-      console.error("Ошибка при удалении товара из коробки:", error);
-      alert("Произошла ошибка при удалении товара из коробки");
+      console.error("Ошибка при удалении товара:", error);
+      alert("Произошла ошибка при отправке запроса");
     }
   };
 
@@ -175,8 +181,7 @@ export default function BoxContentPage() {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!editingItem || !box) return;
+    if (!box || !editingItem || !editQuantity) return;
 
     if (!editQuantity.trim() || parseInt(editQuantity) <= 0) {
       setEditResult({
@@ -232,20 +237,22 @@ export default function BoxContentPage() {
     return (
       <div className="py-8 text-center">
         <div className="inline-block animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-        <p className="mt-2 text-gray-600">Загрузка...</p>
+        <p className="mt-2 text-gray-600">Загрузка содержимого коробки...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="py-8">
-        <div className="bg-red-50 p-4 rounded-md">
-          <h2 className="text-red-800 font-medium">Ошибка</h2>
-          <p className="text-red-700 mt-1">{error}</p>
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+          <strong className="font-bold">Ошибка: </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+        <div className="mt-4">
           <Link
             href="/boxes"
-            className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800"
+            className="text-blue-600 hover:text-blue-800 flex items-center"
           >
             <ArrowLeftIcon className="h-4 w-4 mr-1" />
             Вернуться к списку коробок
@@ -257,12 +264,15 @@ export default function BoxContentPage() {
 
   if (!box) {
     return (
-      <div className="py-8">
-        <div className="bg-yellow-50 p-4 rounded-md">
-          <h2 className="text-yellow-800 font-medium">Коробка не найдена</h2>
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded relative">
+          <strong className="font-bold">Внимание: </strong>
+          <span className="block sm:inline">Коробка не найдена</span>
+        </div>
+        <div className="mt-4">
           <Link
             href="/boxes"
-            className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800"
+            className="text-blue-600 hover:text-blue-800 flex items-center"
           >
             <ArrowLeftIcon className="h-4 w-4 mr-1" />
             Вернуться к списку коробок
@@ -273,28 +283,95 @@ export default function BoxContentPage() {
   }
 
   return (
-    <div className="py-6">
-      <div className="mb-6">
-        <Link
-          href="/boxes"
-          className="inline-flex items-center text-blue-600 hover:text-blue-800"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          Вернуться к списку коробок
-        </Link>
+    <div className="max-w-4xl mx-auto py-8 px-4">
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <Link
+            href="/boxes"
+            className="text-blue-600 hover:text-blue-800 flex items-center"
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-1" />
+            Список коробок
+          </Link>
+          <h1 className="text-2xl font-bold mt-2">
+            Коробка: {box.name}{" "}
+            <span className="text-gray-500 text-sm ml-2">{box.barcode}</span>
+          </h1>
+        </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h1 className="text-2xl font-bold mb-1">Коробка: {box.name}</h1>
-        <p className="text-gray-500 mb-4">
-          Штрихкод: <span className="font-mono">{box.barcode}</span>
-        </p>
+      <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Добавить товар в коробку</h2>
+        <form onSubmit={handleAddItem} className="flex flex-wrap gap-4">
+          <div className="w-full md:w-2/5">
+            <label
+              htmlFor="productBarcode"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Штрихкод товара
+            </label>
+            <input
+              type="text"
+              id="productBarcode"
+              value={productBarcode}
+              onChange={(e) => setProductBarcode(e.target.value)}
+              required
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              placeholder="Введите штрихкод"
+            />
+          </div>
+          <div className="w-full md:w-1/5">
+            <label
+              htmlFor="productQuantity"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Количество
+            </label>
+            <input
+              type="number"
+              id="productQuantity"
+              value={productQuantity}
+              onChange={(e) => setProductQuantity(e.target.value)}
+              min="1"
+              required
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            />
+          </div>
+          <div className="w-full md:w-1/5 flex items-end">
+            <button
+              type="submit"
+              disabled={addItemLoading}
+              className="inline-flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full"
+            >
+              {addItemLoading ? (
+                <span className="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+              ) : (
+                <PlusIcon className="h-4 w-4 mr-1" />
+              )}
+              Добавить
+            </button>
+          </div>
+        </form>
 
-        <h2 className="text-xl font-semibold mt-6 mb-4">Содержимое коробки</h2>
+        {addItemResult && (
+          <div
+            className={`mt-4 p-3 rounded-md ${
+              addItemResult.success
+                ? "bg-green-50 text-green-800 border border-green-200"
+                : "bg-red-50 text-red-800 border border-red-200"
+            }`}
+          >
+            {addItemResult.message}
+          </div>
+        )}
+      </div>
 
-        {!box.items || box.items.length === 0 ? (
-          <p className="text-gray-500">Коробка пуста</p>
-        ) : (
+      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <h2 className="text-xl font-semibold p-6 border-b">
+          Содержимое коробки
+        </h2>
+
+        {box.items && box.items.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -303,13 +380,7 @@ export default function BoxContentPage() {
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
-                    Фото
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Название
+                    Товар
                   </th>
                   <th
                     scope="col"
@@ -325,19 +396,7 @@ export default function BoxContentPage() {
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Цена
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Категория
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Действия
                   </th>
@@ -345,218 +404,112 @@ export default function BoxContentPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {box.items.map((item) => (
-                  <tr key={item.product_id || item.id}>
+                  <tr key={item.product_id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {item.photo_paths && item.photo_paths.length > 0 ? (
-                        <div className="h-12 w-12 relative">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 relative">
                           <ProductImage
-                            src={item.photo_paths[0]}
-                            alt={item.name || "Товар"}
+                            src={
+                              item.photo_paths && item.photo_paths.length > 0
+                                ? item.photo_paths[0]
+                                : "/placeholder.png"
+                            }
+                            alt={item.name}
                             fill
-                            className="rounded-md object-cover"
+                            className="rounded object-cover"
                           />
                         </div>
-                      ) : (
-                        <div className="h-12 w-12 bg-gray-200 rounded-md flex items-center justify-center">
-                          <span className="text-gray-400 text-xs">
-                            Нет фото
-                          </span>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {item.name}
+                          </div>
+                          {item.category && (
+                            <div className="text-sm text-gray-500">
+                              {item.category}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <Link
-                        href={`/product/${item.product_id || item.id}`}
-                        className=""
-                      >
-                        {item.name}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                      {item.barcode}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.quantity}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.price ? `${item.price} ₽` : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.category || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => openEditModal(item)}
-                          className="text-indigo-600 hover:text-indigo-900 p-1"
-                          title="Изменить количество"
-                        >
-                          <PencilIcon className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleRemoveItem(box.id, item.product_id || item.id)
-                          }
-                          className="text-red-600 hover:text-red-900 p-1"
-                          title="Удалить из коробки"
-                        >
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {item.barcode}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {item.quantity}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => openEditModal(item)}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                      >
+                        <PencilIcon className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleRemoveItem(box.id, item.product_id)
+                        }
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <TrashIcon className="h-5 w-5" aria-hidden="true" />
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
-
-      {/* Форма добавления товара в коробку */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Добавить товар в коробку</h2>
-
-        <form onSubmit={handleAddItem} className="space-y-4 max-w-md">
-          <div>
-            <label
-              htmlFor="productBarcode"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Штрихкод товара:
-            </label>
-            <input
-              type="text"
-              id="productBarcode"
-              value={productBarcode}
-              onChange={(e) => setProductBarcode(e.target.value)}
-              maxLength={13}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Введите штрихкод товара"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="productQuantity"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Количество:
-            </label>
-            <input
-              type="number"
-              id="productQuantity"
-              value={productQuantity}
-              onChange={(e) => setProductQuantity(e.target.value)}
-              min="1"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={addItemLoading}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
-          >
-            {addItemLoading ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Добавление...
-              </>
-            ) : (
-              <>
-                <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                Добавить
-              </>
-            )}
-          </button>
-        </form>
-
-        {addItemResult && (
-          <div
-            className={`mt-4 p-3 rounded-md ${
-              addItemResult.success
-                ? "bg-green-50 text-green-800"
-                : "bg-red-50 text-red-800"
-            }`}
-          >
-            {addItemResult.message}
+        ) : (
+          <div className="p-6 text-center text-gray-500">
+            В этой коробке пока нет товаров
           </div>
         )}
       </div>
 
-      {/* Модальное окно для редактирования количества */}
+      {/* Модальное окно редактирования количества */}
       {editModalOpen && (
-        <div className="fixed inset-0 overflow-y-auto z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 md:mx-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">
-                Редактировать количество
-              </h2>
-              <button
-                onClick={closeEditModal}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ×
-              </button>
-            </div>
-
-            {editingItem && (
-              <form onSubmit={handleEditSubmit} className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="editQuantity"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    {`Товар: ${editingItem.name} (${editingItem.barcode})`}
-                  </label>
-                  <div className="mt-2">
-                    <label
-                      htmlFor="editQuantity"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Количество:
-                    </label>
-                    <input
-                      type="number"
-                      id="editQuantity"
-                      value={editQuantity}
-                      onChange={(e) => setEditQuantity(e.target.value)}
-                      min="1"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Изменить количество
+            </h3>
+            <form onSubmit={handleEditSubmit}>
+              <div className="mb-4">
+                <label
+                  htmlFor="editQuantity"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Количество
+                </label>
+                <input
+                  type="number"
+                  id="editQuantity"
+                  value={editQuantity}
+                  onChange={(e) => setEditQuantity(e.target.value)}
+                  min="1"
+                  required
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Отмена
+                </button>
                 <button
                   type="submit"
-                  disabled={editLoading}
-                  className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  {editLoading ? "Сохранение..." : "Сохранить"}
+                  Сохранить
                 </button>
-              </form>
-            )}
+              </div>
+            </form>
 
             {editResult && (
               <div

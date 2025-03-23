@@ -8,6 +8,9 @@ import {
   CameraIcon,
   PlusIcon,
   CubeTransparentIcon,
+  CheckCircleIcon,
+  ServerIcon,
+  CommandLineIcon,
 } from "@heroicons/react/24/outline";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
@@ -16,6 +19,9 @@ const navItems = [
   { name: "Список товаров", href: "/products", icon: ListBulletIcon },
   { name: "Сканировать штрихкод", href: "/scan", icon: CameraIcon },
   { name: "Управление коробками", href: "/boxes", icon: CubeTransparentIcon },
+  { name: "Список задач", href: "/todos", icon: CheckCircleIcon },
+  { name: "Статус БД", href: "/db-status", icon: ServerIcon },
+  { name: "Админ БД", href: "/db-admin", icon: CommandLineIcon },
 ];
 
 export default function MainNav() {
