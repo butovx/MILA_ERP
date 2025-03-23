@@ -1,10 +1,67 @@
 import { Pool } from "pg";
 import supabase from "./supabase";
 import https from "https";
+// Импортируем node-fetch для серверной части и используем нативный fetch в браузере
+import fetch from "node-fetch";
+import type { Response } from "node-fetch";
+
+// Определяем универсальную fetch-функцию
+const universalFetch = typeof window === "undefined" ? fetch : global.fetch;
 
 // Настраиваем SSL для Node.js в продакшене
 if (process.env.NODE_ENV === "production") {
   https.globalAgent.options.rejectUnauthorized = false;
+}
+
+// Функция для прямого вызова Supabase API, минуя клиентскую библиотеку
+async function directSupabaseRPC(functionName: string, params: any) {
+  // Убедимся, что у нас есть все необходимые параметры
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+      "Не настроены NEXT_PUBLIC_SUPABASE_URL или NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    );
+  }
+
+  try {
+    console.log(`Прямой вызов ${functionName} через fetch`);
+
+    // Настраиваем опции запроса
+    const fetchOptions: any = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify(params),
+    };
+
+    // Только для сервера добавляем спец. опции для обхода SSL
+    if (typeof window === "undefined") {
+      fetchOptions.agent = new https.Agent({
+        rejectUnauthorized: false,
+      });
+    }
+
+    // Выполняем запрос напрямую к API используя универсальную функцию
+    const response = await universalFetch(
+      `${supabaseUrl}/rest/v1/rpc/${functionName}`,
+      fetchOptions
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Ошибка API: ${response.status} ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`Ошибка при прямом вызове ${functionName}:`, error);
+    throw error;
+  }
 }
 
 // Определим конфигурацию для подключения к базе данных
@@ -13,66 +70,19 @@ let pool: Pool;
 
 // В зависимости от окружения используем разные подходы к подключению
 if (process.env.USE_SUPABASE === "true") {
-  // В этом режиме мы будем использовать клиент Supabase напрямую
-  // и экспортировать прокси-объект, который имеет метод query для совместимости
+  console.log("Используем Supabase для запросов к БД");
+
+  // В этом режиме мы используем прямой fetch API для запросов к Supabase
   const proxyPool = {
     query: async (text: string, params?: any[]) => {
       try {
-        // Добавляем дополнительную логику для обхода SSL в prod
-        if (process.env.NODE_ENV === "production") {
-          // Убедимся, что глобальный агент настроен правильно
-          https.globalAgent.options.rejectUnauthorized = false;
-        }
+        console.log("SQL запрос:", text);
 
-        // Используем SQL напрямую через функцию rpc в Supabase
-        const { data, error } = await supabase.rpc("run_sql", {
+        // Выполняем запрос через прямой fetch, минуя supabase клиент
+        const data = await directSupabaseRPC("run_sql", {
           sql_query: text,
           query_params: params || [],
         });
-
-        if (error) {
-          console.error("Ошибка выполнения SQL через Supabase:", error);
-
-          // Пробуем дополнительный обход для SSL ошибок
-          if (error.message && error.message.includes("certificate")) {
-            console.log("Пробуем обойти ошибку SSL...");
-
-            // Пытаемся использовать прямой fetch запрос к API
-            const fetchOptions: any = {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-                Authorization: `Bearer ${
-                  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-                }`,
-              },
-              body: JSON.stringify({
-                sql_query: text,
-                query_params: params || [],
-              }),
-            };
-
-            // Добавляем агент только на стороне сервера
-            if (typeof window === "undefined") {
-              fetchOptions.agent = new https.Agent({
-                rejectUnauthorized: false,
-              });
-            }
-
-            const response = await fetch(
-              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/run_sql`,
-              fetchOptions
-            );
-
-            if (response.ok) {
-              const data = await response.json();
-              return processQueryResult(data);
-            }
-          }
-
-          throw error;
-        }
 
         if (data && "error" in data) {
           console.error("SQL ошибка:", data.error);
