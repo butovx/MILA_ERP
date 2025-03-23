@@ -5,10 +5,10 @@ import { uploadFiles } from "@/lib/upload";
 // Получение информации о товаре по ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
     const result = await pool.query("SELECT * FROM products WHERE id = $1", [
       id,
@@ -44,10 +44,10 @@ export async function GET(
 // Обновление товара
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const quantity = formData.get("quantity") as string;
@@ -120,10 +120,19 @@ export async function PUT(
 // Удаление товара
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
+
+    // Проверяем существование товара
+    const checkResult = await pool.query(
+      "SELECT * FROM products WHERE id = $1",
+      [id]
+    );
+    if (checkResult.rows.length === 0) {
+      return NextResponse.json({ error: "Товар не найден" }, { status: 404 });
+    }
 
     // Проверяем, есть ли товар в коробках
     const boxItemsResult = await pool.query(
@@ -132,19 +141,12 @@ export async function DELETE(
     );
 
     if (boxItemsResult.rows.length > 0) {
-      // Удаляем товар из всех коробок
+      // Удаляем записи о товаре из всех коробок
       await pool.query("DELETE FROM box_items WHERE product_id = $1", [id]);
     }
 
     // Удаляем товар
-    const result = await pool.query(
-      "DELETE FROM products WHERE id = $1 RETURNING *",
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      return NextResponse.json({ error: "Товар не найден" }, { status: 404 });
-    }
+    await pool.query("DELETE FROM products WHERE id = $1", [id]);
 
     return NextResponse.json({
       message: "Товар успешно удален",

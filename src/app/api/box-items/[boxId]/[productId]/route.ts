@@ -4,11 +4,10 @@ import pool from "@/lib/db";
 // PUT /api/box-items/[boxId]/[productId] - обновить количество товара в коробке
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { boxId: string; productId: string } }
+  { params }: { params: Promise<{ boxId: string; productId: string }> }
 ) {
   try {
-    const boxId = params.boxId;
-    const productId = params.productId;
+    const { boxId, productId } = await params;
     const { quantity } = await request.json();
 
     // Валидация входных данных
@@ -54,11 +53,10 @@ export async function PUT(
 // DELETE /api/box-items/[boxId]/[productId] - удалить товар из коробки
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { boxId: string; productId: string } }
+  { params }: { params: Promise<{ boxId: string; productId: string }> }
 ) {
   try {
-    const boxId = params.boxId;
-    const productId = params.productId;
+    const { boxId, productId } = await params;
 
     // Проверяем существование записи
     const existingItemResult = await pool.query(

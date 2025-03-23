@@ -4,10 +4,10 @@ import pool from "@/lib/db";
 // GET /api/boxes/barcode/[barcode] - получить коробку по штрихкоду
 export async function GET(
   request: NextRequest,
-  { params }: { params: { barcode: string } }
+  { params }: { params: Promise<{ barcode: string }> }
 ) {
   try {
-    const barcode = params.barcode;
+    const { barcode } = await params;
 
     // Валидация штрихкода
     if (!barcode) {

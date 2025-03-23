@@ -4,10 +4,10 @@ import pool from "@/lib/db";
 // Получение информации о коробке по ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
     const result = await pool.query("SELECT * FROM boxes WHERE id = $1", [id]);
 
@@ -40,9 +40,9 @@ export async function GET(
 
     return NextResponse.json(box);
   } catch (error) {
-    console.error("Ошибка при получении коробки:", error);
+    console.error("Ошибка при получении информации о коробке:", error);
     return NextResponse.json(
-      { error: "Ошибка при получении коробки" },
+      { error: "Ошибка при получении информации о коробке" },
       { status: 500 }
     );
   }
@@ -51,10 +51,10 @@ export async function GET(
 // Обновление коробки
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const { name } = await request.json();
 
     if (!name || name.trim() === "") {
@@ -92,34 +92,28 @@ export async function PUT(
 // Удаление коробки
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
-    // Проверяем, есть ли товары в коробке
-    const boxItemsResult = await pool.query(
-      "SELECT * FROM box_items WHERE box_id = $1",
-      [id]
-    );
+    // Проверяем, что коробка существует
+    const checkResult = await pool.query("SELECT * FROM boxes WHERE id = $1", [
+      id,
+    ]);
 
-    if (boxItemsResult.rows.length > 0) {
-      // Удаляем все товары из коробки
-      await pool.query("DELETE FROM box_items WHERE box_id = $1", [id]);
-    }
-
-    // Удаляем коробку
-    const result = await pool.query(
-      "DELETE FROM boxes WHERE id = $1 RETURNING *",
-      [id]
-    );
-
-    if (result.rows.length === 0) {
+    if (checkResult.rows.length === 0) {
       return NextResponse.json(
         { error: "Коробка не найдена" },
         { status: 404 }
       );
     }
+
+    // Сначала удаляем все связанные записи box_items
+    await pool.query("DELETE FROM box_items WHERE box_id = $1", [id]);
+
+    // Затем удаляем саму коробку
+    await pool.query("DELETE FROM boxes WHERE id = $1", [id]);
 
     return NextResponse.json({
       message: "Коробка успешно удалена",

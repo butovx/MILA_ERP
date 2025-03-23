@@ -11,14 +11,14 @@ import React from "react";
 import ProductDisplay from "@/components/product/ProductDisplay";
 
 interface ProductPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
   // Используем await для доступа к params
-  const id = params.id;
+  const { id } = await params;
 
   return (
     <Suspense
