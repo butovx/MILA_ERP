@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-// Используем правильную типизацию для App Router Next.js
-type RouteParams = {
-  params: {
-    code: string;
-  };
-};
-
 // Получение информации о товаре по штрихкоду
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { code: string } }
+) {
   try {
     const code = params.code;
 

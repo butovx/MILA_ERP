@@ -2,15 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { uploadFiles } from "@/lib/upload";
 
-// Используем правильную типизацию для App Router Next.js
-type RouteParams = {
-  params: {
-    id: string;
-  };
-};
-
 // Получение информации о товаре по ID
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const id = params.id;
 
@@ -46,7 +42,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // Обновление товара
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const id = params.id;
     const formData = await request.formData();
@@ -119,7 +118,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 }
 
 // Удаление товара
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const id = params.id;
 

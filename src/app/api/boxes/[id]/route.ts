@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-// Используем правильную типизацию для App Router Next.js
-type RouteParams = {
-  params: {
-    id: string;
-  };
-};
-
 // Получение информации о коробке по ID
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const id = params.id;
 
@@ -53,7 +49,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // Обновление коробки
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const id = params.id;
     const { name } = await request.json();
@@ -91,7 +90,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 }
 
 // Удаление коробки
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const id = params.id;
 

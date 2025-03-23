@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-// Используем правильную типизацию для App Router Next.js
-type RouteParams = {
-  params: {
-    boxId: string;
-    productId: string;
-  };
-};
-
 // PUT /api/box-items/[boxId]/[productId] - обновить количество товара в коробке
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { boxId: string; productId: string } }
+) {
   try {
     const boxId = params.boxId;
     const productId = params.productId;
@@ -57,7 +52,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/box-items/[boxId]/[productId] - удалить товар из коробки
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { boxId: string; productId: string } }
+) {
   try {
     const boxId = params.boxId;
     const productId = params.productId;
