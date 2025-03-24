@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,6 +14,7 @@ import Barcode from "@/components/Barcode";
 import { Box, Product, BoxItem } from "@/types";
 import DataTable from "@/components/DataTable";
 import ProductSearch from "@/components/ProductSearch";
+import useBoxSelection from "@/components/BoxSelectionHelper";
 
 export default function BoxContentClient() {
   const searchParams = useSearchParams();
@@ -45,6 +46,30 @@ export default function BoxContentClient() {
   } | null>(null);
 
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
+
+  // Режим выбора
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const [deletingItemIds, setDeletingItemIds] = useState<number[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Обработчик изменения выбора элементов с useCallback, чтобы не создавать новые функции при каждом рендере
+  const handleSelectionChange = useCallback((selectedIds: number[]) => {
+    setSelectedItems(selectedIds);
+  }, []);
+
+  // Хук для работы с выбором элементов - передаем только box?.items и мемоизированный колбэк
+  const { renderSelectionColumn } = useBoxSelection({
+    items: box?.items || [],
+    onSelectionChange: handleSelectionChange,
+  });
+
+  // При изменении режима выбора или обновлении содержимого коробки, сбрасываем выбранные элементы
+  useEffect(() => {
+    if (selectionMode === false) {
+      setSelectedItems([]);
+    }
+  }, [selectionMode]);
 
   useEffect(() => {
     if (boxId || boxBarcode) {
@@ -150,7 +175,7 @@ export default function BoxContentClient() {
   };
 
   const handleRemoveItem = async (boxId: number, productId: number) => {
-    if (!confirm("Вы действительно хотите удалить этот товар из коробки?"))
+    if (!confirm("Вы действительно хотите убрать этот товар из коробки?"))
       return;
 
     try {
@@ -264,24 +289,79 @@ export default function BoxContentClient() {
     setProductBarcode(barcode);
   };
 
+  // Переключение режима выбора
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedItems([]);
+  };
+
+  const deleteSelectedItems = async () => {
+    if (!box || selectedItems.length === 0) return;
+
+    if (
+      !confirm(
+        `Вы действительно хотите убрать выбранные товары (${selectedItems.length} шт.) из коробки?`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingItemIds([...selectedItems]);
+    setIsDeleting(true);
+
+    try {
+      const results = await Promise.all(
+        selectedItems.map((productId) => {
+          // Для удаления элемента используем напрямую productId, который уже получен из product_id
+          return fetch(`/api/box-items/${box.id}/${productId}`, {
+            method: "DELETE",
+          });
+        })
+      );
+
+      const allSuccessful = results.every((res) => res !== null && res.ok);
+
+      if (allSuccessful) {
+        fetchBoxContent();
+        setSelectedItems([]);
+        setSelectionMode(false); // Выходим из режима выбора после успешного удаления
+      } else {
+        alert("Произошла ошибка при удалении некоторых товаров из коробки");
+      }
+    } catch (error) {
+      console.error("Ошибка при удалении товаров из коробки:", error);
+      alert("Произошла ошибка при удалении товаров из коробки");
+    } finally {
+      setDeletingItemIds([]);
+      setIsDeleting(false);
+    }
+  };
+
   const columns = [
+    ...(selectionMode && renderSelectionColumn && (box?.items?.length ?? 0) > 0
+      ? [renderSelectionColumn]
+      : []),
     {
       key: "photo",
       header: "Фото",
       render: (item: BoxItem) =>
         item.photo_paths && item.photo_paths.length > 0 ? (
-          <div className="h-9 w-9 relative">
-            <ProductImage
-              src={item.photo_paths[0]}
-              alt={item.name || "Товар"}
-              fill
-              className="rounded-md object-cover"
-            />
-          </div>
+          <Link href={`/product/${item.product_id || item.id}`}>
+            <div className="h-9 w-9 relative">
+              <ProductImage
+                src={item.photo_paths[0]}
+                alt={item.name || "Товар"}
+                fill
+                className="rounded-md object-cover"
+              />
+            </div>
+          </Link>
         ) : (
-          <div className="h-9 w-9 bg-gray-200 rounded-md flex items-center justify-center">
-            <span className="text-gray-400 text-xs">Нет</span>
-          </div>
+          <Link href={`/product/${item.product_id || item.id}`}>
+            <div className="h-9 w-9 bg-gray-200 rounded-md flex items-center justify-center">
+              <span className="text-gray-400 text-xs">Нет</span>
+            </div>
+          </Link>
         ),
       mobilePriority: 1,
     },
@@ -291,7 +371,7 @@ export default function BoxContentClient() {
       render: (item: BoxItem) => (
         <Link
           href={`/product/${item.product_id || item.id}`}
-          className="text-blue-600 hover:text-blue-800 block max-w-[150px] truncate"
+          className="text-blue-600 hover:text-blue-800 block max-w-[400px]"
           title={item.name}
         >
           {item.name}
@@ -310,7 +390,9 @@ export default function BoxContentClient() {
     {
       key: "quantity",
       header: "Количество",
-      render: (item: BoxItem) => item.quantity,
+      render: (item: BoxItem) => (
+        <div className="w-[80px] text-center">{item.quantity}</div>
+      ),
       mobilePriority: 2,
     },
     {
@@ -324,58 +406,6 @@ export default function BoxContentClient() {
       header: "Категория",
       render: (item: BoxItem) => item.category || "-",
       mobilePriority: 3,
-    },
-    {
-      key: "actions",
-      header: "Действия",
-      render: (item: BoxItem) => (
-        <div className="flex space-x-2">
-          <button
-            onClick={() => openEditModal(item)}
-            className="text-indigo-600 hover:text-indigo-900 p-1"
-            title="Редактировать количество"
-          >
-            <PencilIcon className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => {
-              setDeletingItemId(item.id);
-              if (box) {
-                handleRemoveItem(box.id, item.product_id || item.id);
-              }
-            }}
-            className="text-red-600 hover:text-red-900 p-1"
-            title="Удалить из коробки"
-            disabled={deletingItemId === item.id}
-          >
-            {deletingItemId === item.id ? (
-              <svg
-                className="animate-spin h-5 w-5 text-red-600"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-            ) : (
-              <TrashIcon className="h-5 w-5" />
-            )}
-          </button>
-        </div>
-      ),
-      mobilePriority: 1,
     },
   ];
 
@@ -458,7 +488,39 @@ export default function BoxContentClient() {
         </div>
 
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Добавить товар</h2>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+            <h2 className="text-xl font-semibold">Добавить товар</h2>
+
+            <div className="flex gap-2 mt-4 md:mt-0">
+              <button
+                onClick={toggleSelectionMode}
+                className={`px-4 py-2 rounded-md text-sm font-medium ${
+                  selectionMode
+                    ? "bg-gray-200 text-gray-800"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+              >
+                {selectionMode ? "Выйти из режима выбора" : "Выбрать товары"}
+              </button>
+
+              {selectionMode && (
+                <button
+                  onClick={deleteSelectedItems}
+                  disabled={selectedItems.length === 0 || isDeleting}
+                  className={`px-4 py-2 rounded-md text-sm font-medium ${
+                    selectedItems.length === 0 || isDeleting
+                      ? "bg-red-300 cursor-not-allowed text-white"
+                      : "bg-red-600 text-white hover:bg-red-700"
+                  }`}
+                >
+                  {isDeleting
+                    ? `Удаление... (${deletingItemIds.length})`
+                    : `Убрать из коробки (${selectedItems.length})`}
+                </button>
+              )}
+            </div>
+          </div>
+
           <form onSubmit={handleAddItem} className="space-y-4">
             <ProductSearch
               onSelect={handleProductSelect}

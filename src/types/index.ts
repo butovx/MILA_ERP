@@ -14,6 +14,9 @@ export interface Box {
   id: number;
   name: string;
   barcode: string;
+  created_at?: string;
+  items_count?: number;
+  total_price?: number;
 }
 
 export interface BoxItem extends Product {

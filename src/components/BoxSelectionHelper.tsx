@@ -8,16 +8,18 @@ type UseBoxSelectionProps = {
 
 /**
  * Хук для работы с выбором элементов в коробке
- * Решает проблему автоматического выбора всех элементов при активации режима выбора
+ * Реализует множественный выбор товаров для удаления из коробки
  */
 export default function useBoxSelection({
   items,
   onSelectionChange,
 }: UseBoxSelectionProps) {
+  // Используем product_id вместо id для надежной идентификации товаров
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [allSelected, setAllSelected] = useState(false);
 
   // Используем useRef для отслеживания предыдущего состояния
+  const prevItemsRef = useRef<BoxItem[]>([]);
   const prevSelectedIdsRef = useRef<number[]>([]);
   // Сохраняем onSelectionChange в ref, чтобы избежать проблем с зависимостями
   const onSelectionChangeRef = useRef(onSelectionChange);
@@ -29,12 +31,23 @@ export default function useBoxSelection({
 
   // При изменении списка элементов сбрасываем выбор
   useEffect(() => {
-    setSelectedIds([]);
-    setAllSelected(false);
+    // Проверяем, изменился ли список элементов
+    const prevItems = prevItemsRef.current;
+    const itemsChanged =
+      items.length !== prevItems.length ||
+      items.some(
+        (item, index) =>
+          !prevItems[index] || prevItems[index].product_id !== item.product_id
+      );
+
+    if (itemsChanged) {
+      setSelectedIds([]);
+      setAllSelected(false);
+      prevItemsRef.current = [...items];
+    }
   }, [items]);
 
   // Передаем выбранные элементы наверх только при действительном изменении
-  // и проверяем состояние allSelected
   useEffect(() => {
     // Проверяем, изменились ли выбранные элементы
     const prevSelectedIds = prevSelectedIdsRef.current;
@@ -48,20 +61,20 @@ export default function useBoxSelection({
       // Используем текущее значение из ref
       onSelectionChangeRef.current(selectedIds);
 
-      // Обновляем состояние allSelected в том же эффекте
+      // Обновляем состояние allSelected
       setAllSelected(items.length > 0 && selectedIds.length === items.length);
     }
   }, [selectedIds, items.length]);
 
   // Выбор/снятие выбора с отдельного элемента
-  const toggleItemSelection = useCallback((id: number) => {
+  const toggleItemSelection = useCallback((productId: number) => {
     setSelectedIds((prev) => {
       // Если элемент уже выбран - снимаем выделение
-      if (prev.includes(id)) {
-        return prev.filter((itemId) => itemId !== id);
+      if (prev.includes(productId)) {
+        return prev.filter((id) => id !== productId);
       } else {
-        // Иначе - добавляем только этот элемент (не все)
-        return [id];
+        // Добавляем элемент к уже выбранным (множественный выбор)
+        return [...prev, productId];
       }
     });
   }, []);
@@ -72,8 +85,8 @@ export default function useBoxSelection({
       // Снимаем выбор со всех элементов
       setSelectedIds([]);
     } else {
-      // Выбираем все элементы
-      const allIds = items.map((item) => item.id);
+      // Выбираем все элементы, используя product_id
+      const allIds = items.map((item) => item.product_id);
       setSelectedIds(allIds);
     }
   }, [allSelected, items]);
@@ -88,6 +101,7 @@ export default function useBoxSelection({
           checked={allSelected}
           onChange={toggleSelectAll}
           className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          aria-label="Выбрать все товары"
         />
       </div>
     ),
@@ -95,9 +109,10 @@ export default function useBoxSelection({
       <div className="flex items-center justify-center">
         <input
           type="checkbox"
-          checked={selectedIds.includes(item.id)}
-          onChange={() => toggleItemSelection(item.id)}
+          checked={selectedIds.includes(item.product_id)}
+          onChange={() => toggleItemSelection(item.product_id)}
           className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          aria-label={`Выбрать товар ${item.name || "без имени"}`}
         />
       </div>
     ),

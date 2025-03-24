@@ -1,44 +1,46 @@
 "use client";
 
-import { H1, H2, H3, Text, LargeText } from "@/components/Typography";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   CubeIcon,
-  ListBulletIcon,
-  CameraIcon,
-  PlusIcon,
-  CubeTransparentIcon,
   ChartBarIcon,
+  QrCodeIcon,
+  CubeTransparentIcon,
+  ShoppingCartIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
+import { H1, H2, H3, Text, LargeText } from "@/components/Typography";
 
 export default function HomePage() {
   const features = [
     {
       title: "Управление товарами",
       description:
-        "Добавление, редактирование и удаление товаров в системе учета",
-      icon: ListBulletIcon,
+        "Добавляйте, редактируйте и удаляйте товары. Отслеживайте наличие и характеристики.",
+      icon: ShoppingCartIcon,
       link: "/products",
-    },
-    {
-      title: "Быстрый ввод",
-      description:
-        "Добавление новых товаров в базу данных с загрузкой фотографий",
-      icon: PlusIcon,
-      link: "/add-product",
-    },
-    {
-      title: "Сканирование штрихкодов",
-      description: "Быстрый поиск и учет товаров с помощью сканера штрихкодов",
-      icon: CameraIcon,
-      link: "/scan",
     },
     {
       title: "Управление коробками",
       description:
-        "Создание и управление складскими коробками для оптимизации хранения",
+        "Создавайте коробки для организации товаров, отслеживайте перемещения и содержимое.",
       icon: CubeTransparentIcon,
       link: "/boxes",
+    },
+    {
+      title: "Сканирование штрих-кодов",
+      description:
+        "Сканируйте штрих-коды товаров и коробок для быстрого доступа к информации.",
+      icon: QrCodeIcon,
+      link: "/scan",
+    },
+    {
+      title: "Добавление нового товара",
+      description:
+        "Быстро создавайте новые товары с описанием, фотографиями и штрих-кодами.",
+      icon: PlusIcon,
+      link: "/add-product",
     },
   ];
 
@@ -46,7 +48,7 @@ export default function HomePage() {
     <div className="py-8">
       <header className="mb-12 text-center">
         <div className="flex justify-center mb-6">
-          <CubeIcon className="h-16 w-16 text-blue-600 dark:text-blue-400" />
+          <CubeIcon className="h-16 w-16 text-primary-600" />
         </div>
         <H1 className="text-4xl md:text-5xl mb-4">
           Добро пожаловать в MILA ERP
@@ -62,16 +64,16 @@ export default function HomePage() {
           <Link
             key={index}
             href={feature.link}
-            className="bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/50 rounded-lg p-6 
+            className="bg-white shadow-lg rounded-lg p-6 
                       transition-transform hover:scale-[1.02] hover:shadow-xl"
           >
             <div className="flex items-start">
-              <div className="flex-shrink-0 p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <feature.icon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              <div className="flex-shrink-0 p-3 bg-primary-100 rounded-lg">
+                <feature.icon className="h-8 w-8 text-primary-600" />
               </div>
               <div className="ml-4">
                 <H3 className="mb-2">{feature.title}</H3>
-                <Text className="mb-0 text-gray-600 dark:text-gray-400">
+                <Text className="mb-0 text-gray-600">
                   {feature.description}
                 </Text>
               </div>
@@ -80,7 +82,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-8">
+      <div className="bg-primary-50 rounded-lg p-8">
         <H2 className="mb-6 text-center">Начните работу прямо сейчас</H2>
         <Text className="text-center mb-6">
           MILA ERP предоставляет комплексное решение для управления товарами,
@@ -90,9 +92,9 @@ export default function HomePage() {
           <Link
             href="/products"
             className="inline-flex items-center px-6 py-3 border border-transparent text-base 
-                     font-medium rounded-md shadow-sm text-white bg-blue-600 dark:bg-blue-700 
-                     hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 
-                     focus:ring-offset-2 focus:ring-blue-600 dark:focus:ring-blue-500"
+                     font-medium rounded-md shadow-sm text-white bg-primary-600 
+                     hover:bg-primary-700 focus:outline-none focus:ring-2 
+                     focus:ring-offset-2 focus:ring-primary-600"
           >
             <ChartBarIcon className="h-5 w-5 mr-2" />
             Перейти к обзору товаров

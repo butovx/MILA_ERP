@@ -10,6 +10,9 @@ import {
   ArrowPathIcon,
   CheckIcon,
 } from "@heroicons/react/24/outline";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
 
 declare global {
   interface Window {
@@ -85,6 +88,11 @@ export default function ScanPage() {
       (err: any) => {
         if (err) {
           console.error("Ошибка инициализации сканера:", err);
+          toast.error({
+            title: "Ошибка",
+            description:
+              "Не удалось инициализировать сканер. Проверьте разрешения камеры.",
+          });
           setError(
             "Не удалось инициализировать сканер. Проверьте разрешения камеры."
           );
@@ -101,6 +109,10 @@ export default function ScanPage() {
             // Проверяем префикс штрихкода
             const prefix = code.substring(0, 3);
             if (prefix !== "300" && prefix !== "200") {
+              toast.warning({
+                title: "Неверный префикс",
+                description: `Неверный префикс штрихкода: ${prefix}. Допустимы только префиксы 300 и 200.`,
+              });
               setError(
                 `Неверный префикс штрихкода: ${prefix}. Допустимы только префиксы 300 и 200.`
               );
@@ -130,6 +142,10 @@ export default function ScanPage() {
       // Проверяем префикс штрихкода
       const prefix = manualBarcode.substring(0, 3);
       if (prefix !== "300" && prefix !== "200") {
+        toast.warning({
+          title: "Неверный префикс",
+          description: `Неверный префикс штрихкода: ${prefix}. Допустимы только префиксы 300 и 200.`,
+        });
         setError(
           `Неверный префикс штрихкода: ${prefix}. Допустимы только префиксы 300 и 200.`
         );
@@ -141,6 +157,10 @@ export default function ScanPage() {
       addToScanLog(manualBarcode);
       fetchProduct(manualBarcode);
     } else {
+      toast.error({
+        title: "Ошибка формата",
+        description: "Неверный формат штрихкода. Должен быть EAN13 (13 цифр)",
+      });
       setError("Неверный формат штрихкода. Должен быть EAN13 (13 цифр)");
     }
   };
@@ -176,6 +196,10 @@ export default function ScanPage() {
         const boxData = await boxResponse.json();
         setBox(boxData);
         setProduct(null);
+        toast.success({
+          title: "Найдено",
+          description: `Найдена коробка: ${boxData.name}`,
+        });
         // Останавливаем сканер
         if (window.Quagga) {
           window.Quagga.stop();
@@ -189,6 +213,10 @@ export default function ScanPage() {
 
       if (!productResponse.ok) {
         if (productResponse.status === 404) {
+          toast.error({
+            title: "Не найдено",
+            description: `Товар со штрихкодом ${code} не найден`,
+          });
           setError(`Товар со штрихкодом ${code} не найден`);
           setProduct(null);
           setBox(null);
@@ -201,12 +229,20 @@ export default function ScanPage() {
       const data = await productResponse.json();
       setProduct(data);
       setBox(null);
+      toast.success({
+        title: "Найдено",
+        description: `Найден товар: ${data.name}`,
+      });
       // Останавливаем сканер, так как товар найден
       if (window.Quagga) {
         window.Quagga.stop();
         setIsScanning(false);
       }
     } catch (err) {
+      toast.error({
+        title: "Ошибка",
+        description: "Ошибка при поиске товара",
+      });
       setError("Ошибка при поиске товара");
       setProduct(null);
       setBox(null);
@@ -229,248 +265,233 @@ export default function ScanPage() {
     <div className="py-6">
       <h1 className="text-2xl font-bold mb-6">Сканировать штрихкод</h1>
 
-      {/* Видео для сканирования */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <div
-          ref={videoRef}
-          className={`relative bg-black rounded-lg overflow-hidden w-full max-w-lg mx-auto h-64 ${
-            isScanning ? "" : "hidden"
-          }`}
-        >
-          <div
-            id="scanner-overlay"
-            className="absolute inset-0 pointer-events-none"
-          >
-            <div className="w-full h-full border-2 border-red-500 border-dashed absolute"></div>
-          </div>
-        </div>
-
-        {/* Результат сканирования */}
-        {barcode && (
-          <div className="mt-4 p-4 bg-green-50 rounded-lg">
-            <p className="text-green-800 font-medium">Отсканирован штрихкод:</p>
-            <div className="mt-2">
-              <Barcode
-                value={barcode}
-                height={80}
-                width={1.5}
-                fontSize={16}
-                margin={10}
-                className="max-w-full"
-                textMargin={5}
-                id={`barcode-${barcode}`}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Форма для ручного ввода */}
-        <form onSubmit={handleSubmit} className="mt-6 flex items-center">
-          <div className="flex-grow">
-            <label
-              htmlFor="manualBarcode"
-              className="block text-sm font-medium text-gray-700 mb-1"
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Карточка сканера */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Камера</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div
+              ref={videoRef}
+              className={`relative bg-black rounded-lg overflow-hidden w-full h-64 ${
+                isScanning ? "" : "hidden"
+              }`}
             >
-              Или введите штрихкод вручную:
-            </label>
-            <input
-              type="text"
-              id="manualBarcode"
-              value={manualBarcode}
-              onChange={(e) => setManualBarcode(e.target.value)}
-              placeholder="Введите 13 цифр..."
-              maxLength={13}
-              className="w-full block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          <button
-            type="submit"
-            className="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <CheckIcon className="h-5 w-5 mr-1" />
-            Проверить
-          </button>
-        </form>
-
-        {/* Кнопка перезапуска сканера */}
-        <div className="mt-6 text-center">
-          <button
-            onClick={restartScanner}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <CameraIcon className="h-5 w-5 mr-1" />
-            {isScanning ? "Остановить сканер" : "Запустить сканер"}
-          </button>
-        </div>
-      </div>
-
-      {/* Информация о товаре или коробке */}
-      {loading && (
-        <div className="text-center py-4">
-          <div className="inline-block animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-          <p className="mt-2 text-gray-600">Поиск...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 p-4 rounded-md mb-6">
-          <h2 className="text-red-800 font-medium">Ошибка</h2>
-          <p className="text-red-700 mt-1">{error}</p>
-        </div>
-      )}
-
-      {box && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Содержимое коробки: {box.name}
-          </h2>
-
-          <div className="mb-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Штрихкод коробки:
-            </h3>
-            <Barcode
-              value={box.barcode}
-              height={80}
-              width={1.5}
-              fontSize={16}
-              margin={10}
-              className="max-w-full"
-              textMargin={5}
-              id={`barcode-${box.barcode}`}
-            />
-          </div>
-
-          {box.items && box.items.length > 0 ? (
-            <div className="mt-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Товары в коробке:
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {box.items.map((item: any) => (
-                  <div key={item.id} className="border rounded-lg p-4">
-                    <div className="flex items-start">
-                      {item.photo_paths && item.photo_paths.length > 0 && (
-                        <div className="w-20 h-20 mr-4">
-                          <ProductImage
-                            src={item.photo_paths[0]}
-                            alt={item.name}
-                            width={80}
-                            height={80}
-                            className="object-contain rounded-md"
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          {item.name}
-                        </h4>
-                        <p className="text-sm text-gray-500">
-                          Количество: {item.quantity}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Штрихкод: {item.barcode}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div
+                id="scanner-overlay"
+                className="absolute inset-0 pointer-events-none"
+              >
+                <div className="w-full h-full border-2 border-red-500 border-dashed absolute"></div>
               </div>
             </div>
-          ) : (
-            <p className="text-gray-500">Коробка пуста</p>
-          )}
 
-          <div className="mt-4">
-            <Link
-              href={`/box-content?barcode=${box.barcode}`}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Управление содержимым
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {product && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Информация о товаре</h2>
-
-          <div className="flex flex-col md:flex-row">
-            {/* Изображение товара */}
-            <div className="md:w-1/4 mb-4 md:mb-0 md:mr-6">
-              {product.photo_paths && product.photo_paths.length > 0 ? (
-                <div className="w-full h-48 relative">
-                  <ProductImage
-                    src={product.photo_paths[0]}
-                    alt={product.name}
-                    fill
-                    className="object-contain rounded-md"
-                  />
+            {/* Результат сканирования */}
+            {barcode && (
+              <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                <div className="font-semibold text-green-800 mb-2">
+                  Штрихкод просканирован:
                 </div>
+                <div className="flex items-center space-x-2 text-gray-800">
+                  <CheckIcon className="h-5 w-5 text-green-600" />
+                  <span className="font-mono">{barcode}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex mt-4 gap-2">
+              {isScanning ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => window.Quagga.stop()}
+                >
+                  Приостановить
+                </Button>
               ) : (
-                <div className="w-full h-48 bg-gray-200 rounded-md flex items-center justify-center">
-                  <span className="text-gray-400">Нет фото</span>
-                </div>
+                <Button onClick={restartScanner}>
+                  <CameraIcon className="h-5 w-5 mr-2" />
+                  {barcode ? "Сканировать снова" : "Начать сканирование"}
+                </Button>
               )}
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Информация о товаре */}
-            <div className="md:w-3/4">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {product.name}
-              </h3>
-
-              <div className="space-y-2 text-sm">
-                <p>
-                  <span className="font-medium">ID:</span> {product.id}
-                </p>
-                <p>
-                  <span className="font-medium">Штрихкод:</span>{" "}
-                  {product.barcode}
-                </p>
-                <p>
-                  <span className="font-medium">Количество:</span>{" "}
-                  {product.quantity ?? "-"}
-                </p>
-                <p>
-                  <span className="font-medium">Цена:</span>{" "}
-                  {product.price ? `${product.price} ₽` : "-"}
-                </p>
-                <p>
-                  <span className="font-medium">Категория:</span>{" "}
-                  {product.category || "-"}
-                </p>
-                {product.description && (
-                  <p>
-                    <span className="font-medium">Описание:</span>{" "}
-                    {product.description.length > 100
-                      ? `${product.description.substring(0, 100)}...`
-                      : product.description}
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-4">
-                <Link
-                  href={`/product/${product.id}`}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        {/* Карточка ручного ввода */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Ручной ввод штрихкода</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="manualBarcode"
+                  className="block mb-2 text-sm font-medium text-gray-700"
                 >
-                  Полная информация
-                </Link>
+                  Штрихкод (EAN-13)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    id="manualBarcode"
+                    value={manualBarcode}
+                    onChange={(e) => setManualBarcode(e.target.value)}
+                    placeholder="Введите 13-значный штрихкод"
+                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                    maxLength={13}
+                    pattern="[0-9]{13}"
+                  />
+                  <Button type="submit">Поиск</Button>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </form>
 
-      {/* Журнал сканирования */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Журнал сканирования</h2>
-        <div
-          ref={scanLogRef}
-          className="max-h-64 overflow-y-auto space-y-2"
-        ></div>
+            {/* Лог сканирования */}
+            <div className="mt-4">
+              <h2 className="text-lg font-semibold mb-2">
+                История сканирования
+              </h2>
+              <div
+                ref={scanLogRef}
+                className="max-h-60 overflow-y-auto space-y-1"
+              ></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Результаты сканирования */}
+      <div className="mt-6">
+        {error && (
+          <Card className="border-danger-300 bg-danger-50 mb-4">
+            <CardContent className="pt-6">
+              <p className="text-danger-800">{error}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {loading && (
+          <Card className="border-primary-300 bg-primary-50 mb-4">
+            <CardContent className="pt-6 flex items-center">
+              <svg
+                className="animate-spin h-5 w-5 text-primary-700 mr-3"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <p className="text-primary-700">Загрузка данных...</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Карточка результатов поиска */}
+        {product && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Найден товар</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="md:w-1/3">
+                  {product.photo_paths && product.photo_paths.length > 0 ? (
+                    <ProductImage
+                      src={product.photo_paths[0]}
+                      alt={product.name}
+                      className="w-full rounded-lg"
+                    />
+                  ) : (
+                    <div className="bg-gray-100 rounded-lg aspect-square flex items-center justify-center">
+                      <p className="text-gray-400">Нет фото</p>
+                    </div>
+                  )}
+                </div>
+                <div className="md:w-2/3">
+                  <h2 className="text-2xl font-bold mb-4">{product.name}</h2>
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <span className="font-semibold w-32">Штрихкод:</span>
+                      <span className="font-mono">{product.barcode}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="font-semibold w-32">Категория:</span>
+                      <span>{product.category || "Не указана"}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="font-semibold w-32">Количество:</span>
+                      <span>{product.quantity || 0} шт.</span>
+                    </div>
+                    {product.description && (
+                      <div className="mt-4">
+                        <span className="font-semibold block mb-2">
+                          Описание:
+                        </span>
+                        <p className="text-gray-700">{product.description}</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-6 flex gap-2">
+                    <Button asChild>
+                      <Link href={`/product/${product.id}`}>Подробнее</Link>
+                    </Button>
+                    <Button variant="outline" onClick={restartScanner}>
+                      Сканировать другой товар
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Результат поиска коробки */}
+        {box && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Найдена коробка</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <span className="font-semibold w-32">Название:</span>
+                  <span className="text-lg font-medium">{box.name}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="font-semibold w-32">Штрихкод:</span>
+                  <span className="font-mono">{box.barcode}</span>
+                </div>
+                <div className="mt-4">
+                  <Barcode value={box.barcode} width={2} height={60} />
+                </div>
+
+                <div className="mt-6 flex gap-2">
+                  <Button asChild>
+                    <Link href={`/box-content?barcode=${box.barcode}`}>
+                      Перейти к содержимому
+                    </Link>
+                  </Button>
+                  <Button variant="outline" onClick={restartScanner}>
+                    Сканировать другой товар
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

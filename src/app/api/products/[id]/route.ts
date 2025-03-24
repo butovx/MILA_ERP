@@ -122,6 +122,19 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     const id = (await params).id;
 
+    // Получаем информацию о товаре, чтобы знать, какие файлы удалить
+    const productResult = await pool.query(
+      "SELECT * FROM products WHERE id = $1",
+      [id]
+    );
+
+    if (productResult.rows.length === 0) {
+      return NextResponse.json({ error: "Товар не найден" }, { status: 404 });
+    }
+
+    const product = productResult.rows[0];
+    const photoPaths = JSON.parse(product.photo_paths || "[]");
+
     // Проверяем, есть ли товар в коробках
     const boxItemsResult = await pool.query(
       "SELECT * FROM box_items WHERE product_id = $1",
@@ -142,6 +155,11 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     if (result.rows.length === 0) {
       return NextResponse.json({ error: "Товар не найден" }, { status: 404 });
     }
+
+    // Удаляем файлы изображений
+    const { deleteFile } = await import("@/lib/upload");
+    const deletionPromises = photoPaths.map((path: string) => deleteFile(path));
+    await Promise.all(deletionPromises);
 
     return NextResponse.json({
       message: "Товар успешно удален",

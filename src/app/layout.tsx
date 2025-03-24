@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import MainNav from "@/components/MainNav";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import { themeScript } from "./theme-script";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "MILA ERP",
@@ -15,9 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ru" suppressHydrationWarning>
+    <html lang="ru" className="h-full">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript() }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -29,20 +27,41 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans">
-        <ThemeProvider>
-          <MainNav />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-            {children}
-          </main>
-          <footer className="bg-white dark:bg-gray-900 border-t dark:border-gray-800 mt-auto py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+      <body className="antialiased min-h-full flex flex-col bg-gray-50 text-gray-900 font-sans">
+        <MainNav />
+        <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </main>
+        <footer className="bg-white border-t mt-auto py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-sm text-gray-600">
                 © {new Date().getFullYear()} MILA ERP - Управление складом
               </p>
+              <div className="flex gap-6">
+                <a
+                  href="#"
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  Помощь
+                </a>
+                <a
+                  href="#"
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  Конфиденциальность
+                </a>
+                <a
+                  href="#"
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  О нас
+                </a>
+              </div>
             </div>
-          </footer>
-        </ThemeProvider>
+          </div>
+        </footer>
+        <Toaster />
       </body>
     </html>
   );

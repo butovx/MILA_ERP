@@ -10,7 +10,7 @@ interface Params {
 // GET /api/boxes/barcode/[barcode] - получить коробку по штрихкоду
 export async function GET(request: NextRequest, { params }: Params) {
   try {
-    const { barcode } = params;
+    const barcode = (await params).barcode;
 
     // Валидация штрихкода
     if (!barcode) {

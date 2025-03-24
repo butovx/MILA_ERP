@@ -6,6 +6,8 @@
 @layer base {
   html {
     font-family: "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -22,46 +24,22 @@
   --text-color-primary: #222222;
   --text-color-secondary: #555555;
   --text-color-muted: #6b7280;
-  --border-radius: 0.375rem;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --border-radius: 0.5rem;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05),
+    0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 20px -5px rgba(0, 0, 0, 0.06),
+    0 4px 10px -3px rgba(0, 0, 0, 0.03);
 
   /* Цвета форм и элементов интерфейса */
   --input-bg: #ffffff;
   --input-border: #e2e8f0;
   --input-text: #222222;
-  --button-primary-bg: #3b82f6;
-  --button-primary-hover: #2563eb;
+  --button-primary-bg: #0ea5e9;
+  --button-primary-hover: #0284c7;
   --button-primary-text: #ffffff;
   --card-bg: #ffffff;
-  --card-border: #e5e7eb;
-}
-
-.dark {
-  --background: #0f172a;
-  --foreground: #f8f9fa;
-  --text-color-primary: #f8f9fa;
-  --text-color-secondary: #d1d5db;
-  --text-color-muted: #9ca3af;
-
-  /* Цвета форм и элементов интерфейса для темной темы */
-  --input-bg: #1e293b;
-  --input-border: #334155;
-  --input-text: #f1f5f9;
-  --button-primary-bg: #3b82f6;
-  --button-primary-hover: #60a5fa;
-  --button-primary-text: #ffffff;
-  --card-bg: #1e1e2f;
-  --card-border: #334155;
-
-  /* Тени для тёмной темы */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3),
-    0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --card-border: #f0f3f9;
 }
 
 @theme inline {
@@ -72,7 +50,7 @@
 }
 
 body {
-  background: var(--background);
+  background: #f9fafc;
   color: var(--foreground);
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -97,13 +75,28 @@ h6 {
   letter-spacing: -0.01em;
 }
 
+h1 {
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+h3 {
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
 input,
 textarea,
 select {
   font-size: var(--font-size-base);
   background-color: var(--input-bg);
   border: 1px solid var(--input-border);
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.875rem;
   border-radius: var(--border-radius);
   color: var(--input-text);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -113,30 +106,27 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-}
-
-.dark input:focus,
-.dark textarea:focus,
-.dark select:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
 }
 
 label {
   font-weight: var(--font-weight-medium);
   color: var(--text-color-primary);
+  margin-bottom: 0.375rem;
+  display: block;
+  font-size: 0.9375rem;
 }
 
 a {
-  color: #2563eb;
+  color: #0284c7;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 a:hover {
   text-decoration: none;
+  color: #0369a1;
 }
 
 /* Кастомные стили для карточек */
@@ -156,48 +146,51 @@ a:hover {
 /* Стили для таблиц */
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin-bottom: 1rem;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
 th,
 td {
-  padding: 0.75rem;
+  padding: 1rem;
   text-align: left;
-  border-bottom: 1px solid var(--input-border);
+  border-bottom: 1px solid #f0f3f9;
 }
 
 th {
   font-weight: var(--font-weight-medium);
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.dark table {
-  background-color: var(--input-bg); /* Темный фон для таблицы */
-  color: var(--input-text); /* Светлый текст для таблицы */
+tr:last-child td {
+  border-bottom: none;
 }
 
-.dark th,
-.dark td {
-  border-bottom: 1px solid var(--input-border); /* Границы в темном режиме */
-}
-
-.dark th {
-  background-color: var(--input-bg); /* Темный фон для заголовка */
-  color: var(--input-text); /* Светлый текст для заголовка */
-}
-
-.dark tbody tr {
-  background-color: var(--input-bg); /* Темный фон для каждой строки */
-  color: var(--input-text); /* Светлый текст для каждой строки */
+tbody tr:hover {
+  background-color: rgba(249, 250, 251, 0.5);
 }
 
 /* Стили для кнопок */
 .btn-primary {
   background-color: var(--button-primary-bg);
   color: var(--button-primary-text);
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  border-radius: var(--border-radius);
+  padding: 0.625rem 1.25rem;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-primary:hover {
   background-color: var(--button-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }

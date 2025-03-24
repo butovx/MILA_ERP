@@ -7,41 +7,45 @@ import {
   PencilIcon,
   TrashIcon,
   ArrowTopRightOnSquareIcon,
+  CheckIcon,
 } from "@heroicons/react/24/outline";
 import { H1, H2, Text, ErrorText } from "@/components/Typography";
 import ProductImage from "@/components/ProductImage";
 import DataTable from "@/components/DataTable";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
+import JsBarcode from "jsbarcode";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
-  const [editFormData, setEditFormData] = useState({
-    name: "",
-    quantity: "",
-    description: "",
-    price: "",
-    category: "",
-  });
-  const [editFiles, setEditFiles] = useState<FileList | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [editResult, setEditResult] = useState<{
-    success?: boolean;
-    message?: string;
-  } | null>(null);
-  const [deletingProductId, setDeletingProductId] = useState<number | null>(
-    null
-  );
-  const [notification, setNotification] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
+
+  // Состояние для режима выбора
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [isAllSelected, setIsAllSelected] = useState(false);
+  const [deletingProductsIds, setDeletingProductsIds] = useState<number[]>([]);
+
+  // Состояние для работы с коробками
+  const [boxes, setBoxes] = useState<
+    { id: number; name: string; barcode: string }[]
+  >([]);
+  const [selectedBoxId, setSelectedBoxId] = useState<number | null>(null);
+  const [isLoadingBoxes, setIsLoadingBoxes] = useState(false);
+  const [isAddingToBox, setIsAddingToBox] = useState(false);
+  const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    if (selectionMode && selectedProducts.length > 0) {
+      fetchBoxes();
+    }
+  }, [selectionMode, selectedProducts.length]);
 
   const fetchProducts = async () => {
     try {
@@ -55,143 +59,201 @@ export default function ProductsPage() {
     } catch (err) {
       setError("Не удалось загрузить список товаров");
       console.error(err);
+      toast.error({
+        id: genId(),
+        title: "Ошибка",
+        description: "Не удалось загрузить список товаров",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const openEditModal = (product: Product) => {
-    setCurrentProduct(product);
-    setEditFormData({
-      name: product.name,
-      quantity: product.quantity?.toString() || "",
-      description: product.description || "",
-      price: product.price?.toString() || "",
-      category: product.category || "",
-    });
-    setEditModalOpen(true);
-  };
-
-  const closeEditModal = () => {
-    setEditModalOpen(false);
-    setCurrentProduct(null);
-    setEditFiles(null);
-    setEditResult(null);
-  };
-
-  const handleEditChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setEditFormData({
-      ...editFormData,
-      [name]: value,
-    });
-  };
-
-  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setEditFiles(e.target.files);
+  const fetchBoxes = async () => {
+    try {
+      setIsLoadingBoxes(true);
+      const response = await fetch("/api/boxes");
+      if (!response.ok) {
+        throw new Error("Ошибка при получении списка коробок");
+      }
+      const data = await response.json();
+      setBoxes(data);
+    } catch (err) {
+      console.error("Не удалось загрузить список коробок:", err);
+      toast.error({
+        id: genId(),
+        title: "Ошибка",
+        description: "Не удалось загрузить список коробок",
+      });
+    } finally {
+      setIsLoadingBoxes(false);
     }
   };
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentProduct) return;
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedProducts([]);
+    setIsAllSelected(false);
+    setSelectedBoxId(null);
+  };
 
-    setSubmitting(true);
-    setEditResult(null);
+  const toggleProductSelection = (productId: number) => {
+    if (selectedProducts.includes(productId)) {
+      setSelectedProducts(selectedProducts.filter((id) => id !== productId));
+    } else {
+      setSelectedProducts([...selectedProducts, productId]);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(products.map((product) => product.id));
+    }
+    setIsAllSelected(!isAllSelected);
+  };
+
+  const deleteSelectedProducts = async () => {
+    if (selectedProducts.length === 0) return;
+
+    if (
+      !confirm(
+        `Вы действительно хотите удалить выбранные товары (${selectedProducts.length} шт.)?\nЭто действие нельзя отменить.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingProductsIds([...selectedProducts]);
 
     try {
-      const formData = new FormData();
-      Object.entries(editFormData).forEach(([key, value]) => {
-        formData.append(key, value);
-      });
+      const results = await Promise.all(
+        selectedProducts.map((id) =>
+          fetch(`/api/products/${id}`, { method: "DELETE" })
+        )
+      );
 
-      if (editFiles) {
-        Array.from(editFiles).forEach((file) => {
-          formData.append("photos", file);
+      const allSuccessful = results.every((res) => res.ok);
+
+      if (allSuccessful) {
+        setProducts(products.filter((p) => !selectedProducts.includes(p.id)));
+        toast.success({
+          id: genId(),
+          title: "Успешно",
+          description: `Удалено ${selectedProducts.length} товаров`,
+        });
+        setSelectedProducts([]);
+      } else {
+        toast.error({
+          id: genId(),
+          title: "Ошибка",
+          description: "Произошла ошибка при удалении некоторых товаров",
         });
       }
+    } catch (error) {
+      console.error("Ошибка при удалении товаров:", error);
+      toast.error({
+        id: genId(),
+        title: "Ошибка",
+        description: "Произошла ошибка при удалении товаров",
+      });
+    } finally {
+      setDeletingProductsIds([]);
+    }
+  };
 
-      const response = await fetch(`/api/products/${currentProduct.id}`, {
-        method: "PUT",
-        body: formData,
+  const addSelectedProductsToBox = async () => {
+    if (selectedProducts.length === 0 || !selectedBoxId) return;
+
+    setIsAddingToBox(true);
+
+    try {
+      const response = await fetch("/api/box-items/batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          box_id: selectedBoxId,
+          product_ids: selectedProducts,
+          quantity: quantityToAdd,
+        }),
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        setEditResult({ success: true, message: "Товар успешно обновлен" });
-        fetchProducts(); // Обновляем список товаров
+        const selectedBox = boxes.find((box) => box.id === selectedBoxId);
+        toast.success({
+          id: genId(),
+          title: "Успешно",
+          description: `${selectedProducts.length} товаров добавлено в коробку "${selectedBox?.name}"`,
+        });
+
+        // Обновляем список товаров, чтобы отразить новые связи с коробками
+        fetchProducts();
+
+        // Сбрасываем выбор
+        setSelectedProducts([]);
+        setSelectedBoxId(null);
       } else {
-        setEditResult({
-          success: false,
-          message: result.error || "Ошибка при обновлении товара",
+        toast.error({
+          id: genId(),
+          title: "Ошибка",
+          description:
+            result.error || "Произошла ошибка при добавлении товаров в коробку",
         });
       }
     } catch (error) {
-      setEditResult({
-        success: false,
-        message: "Произошла ошибка при отправке формы",
+      console.error("Ошибка при добавлении товаров в коробку:", error);
+      toast.error({
+        id: genId(),
+        title: "Ошибка",
+        description: "Произошла ошибка при добавлении товаров в коробку",
       });
-      console.error("Ошибка при отправке формы:", error);
     } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    // Находим название товара для более информативного сообщения
-    const product = products.find((p) => p.id === id);
-
-    if (
-      !confirm(
-        `Вы действительно хотите удалить товар "${
-          product?.name || "без названия"
-        }"?\nЭто действие нельзя отменить.`
-      )
-    )
-      return;
-
-    try {
-      setDeletingProductId(id);
-
-      const response = await fetch(`/api/products/${id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        // Удаляем товар из списка
-        setProducts(products.filter((p) => p.id !== id));
-
-        // Показываем уведомление об успешном удалении
-        setNotification({
-          type: "success",
-          message: `Товар "${product?.name || "без названия"}" успешно удален`,
-        });
-
-        // Скрываем уведомление через 3 секунды
-        setTimeout(() => {
-          setNotification(null);
-        }, 3000);
-      } else {
-        const data = await response.json();
-        alert(data.error || "Ошибка при удалении товара");
-      }
-    } catch (error) {
-      console.error("Ошибка при удалении товара:", error);
-      alert("Произошла ошибка при удалении товара");
-    } finally {
-      setDeletingProductId(null);
+      setIsAddingToBox(false);
     }
   };
 
   const columns = [
+    ...(selectionMode
+      ? [
+          {
+            key: "select",
+            header: (
+              <div className="flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </div>
+            ),
+            render: (product: Product) => (
+              <div className="flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={selectedProducts.includes(product.id)}
+                  onChange={() => toggleProductSelection(product.id)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </div>
+            ),
+            mobilePriority: 1,
+          },
+        ]
+      : []),
     {
       key: "id",
       header: "ID",
-      render: (product: Product) => product.id,
+      render: (product: Product) => (
+        <div className="font-mono text-gray-600 w-[60px] text-center">
+          {product.id}
+        </div>
+      ),
       mobilePriority: 3,
     },
     {
@@ -199,18 +261,22 @@ export default function ProductsPage() {
       header: "Фото",
       render: (product: Product) =>
         product.photo_paths && product.photo_paths.length > 0 ? (
-          <div className="h-10 w-10 relative">
-            <ProductImage
-              src={product.photo_paths[0]}
-              alt={product.name}
-              fill
-              className="rounded-md object-cover"
-            />
-          </div>
+          <Link href={`/product/${product.id}`}>
+            <div className="h-8 w-8 relative">
+              <ProductImage
+                src={product.photo_paths[0]}
+                alt={product.name}
+                fill
+                className="rounded-md object-cover"
+              />
+            </div>
+          </Link>
         ) : (
-          <div className="h-10 w-10 bg-gray-200 rounded-md flex items-center justify-center">
-            <span className="text-gray-500 text-xs">Нет</span>
-          </div>
+          <Link href={`/product/${product.id}`}>
+            <div className="h-8 w-8 bg-gray-200 rounded-md flex items-center justify-center">
+              <span className="text-gray-500 text-xs">Нет</span>
+            </div>
+          </Link>
         ),
       mobilePriority: 1,
     },
@@ -218,35 +284,61 @@ export default function ProductsPage() {
       key: "name",
       header: "Название",
       render: (product: Product) => (
-        <div className="max-w-[150px] truncate" title={product.name}>
-          {product.name}
-        </div>
+        <Link
+          href={`/product/${product.id}`}
+          className="text-blue-600 hover:text-blue-800"
+        >
+          <div className="max-w-[350px] min-w-[200px]" title={product.name}>
+            {product.name}
+          </div>
+        </Link>
       ),
       mobilePriority: 1,
     },
     {
       key: "quantity",
       header: "Количество",
-      render: (product: Product) => product.quantity ?? "-",
+      render: (product: Product) => (
+        <div className="w-[70px] text-center">{product.quantity ?? "-"}</div>
+      ),
       mobilePriority: 2,
     },
     {
       key: "price",
       header: "Цена",
-      render: (product: Product) =>
-        product.price ? `${product.price} ₽` : "-",
+      render: (product: Product) => (
+        <div className="w-[80px] text-right">
+          {product.price ? `${product.price} ₽` : "-"}
+        </div>
+      ),
       mobilePriority: 2,
     },
     {
       key: "category",
       header: "Категория",
-      render: (product: Product) => product.category || "-",
+      render: (product: Product) => (
+        <div className="w-[120px]">{product.category || "-"}</div>
+      ),
       mobilePriority: 3,
     },
     {
       key: "barcode",
       header: "Штрихкод",
-      render: (product: Product) => product.barcode,
+      render: (product: Product) => (
+        <div className="font-mono w-[120px]">
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              downloadBarcode(product.barcode);
+            }}
+            className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+            title="Нажмите для скачивания штрихкода"
+          >
+            {product.barcode}
+          </a>
+        </div>
+      ),
       mobilePriority: 3,
     },
     {
@@ -254,7 +346,7 @@ export default function ProductsPage() {
       header: "Коробки",
       render: (product: Product) =>
         product.boxes && product.boxes.length > 0 ? (
-          <div className="flex flex-wrap gap-1 max-w-[120px]">
+          <div className="flex flex-wrap gap-1 max-w-[140px]">
             {product.boxes.slice(0, 2).map((box, index) => (
               <Link
                 key={index}
@@ -273,65 +365,61 @@ export default function ProductsPage() {
             )}
           </div>
         ) : (
-          "-"
+          <div className="w-[120px] text-center">-</div>
         ),
       mobilePriority: 3,
     },
-    {
-      key: "actions",
-      header: "Действия",
-      render: (product: Product) => (
-        <div className="flex space-x-2">
-          <Link
-            href={`/product/${product.id}`}
-            className="text-blue-600 hover:text-blue-900 p-1"
-            title="Просмотреть"
-          >
-            <ArrowTopRightOnSquareIcon className="h-5 w-5" />
-          </Link>
-          <button
-            onClick={() => openEditModal(product)}
-            className="text-indigo-600 hover:text-indigo-900 p-1"
-            title="Редактировать"
-          >
-            <PencilIcon className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => handleDelete(product.id)}
-            className="text-red-600 hover:text-red-900 p-1"
-            title="Удалить"
-            disabled={deletingProductId === product.id}
-          >
-            {deletingProductId === product.id ? (
-              <svg
-                className="animate-spin h-5 w-5 text-red-600"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            ) : (
-              <TrashIcon className="h-5 w-5" />
-            )}
-          </button>
-        </div>
-      ),
-      mobilePriority: 1,
-    },
   ];
+
+  // Функция для скачивания штрихкода
+  const downloadBarcode = (barcode: string) => {
+    // Создаем временный элемент canvas с компонентом Barcode
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.id = `temp-barcode-${barcode}`;
+    document.body.appendChild(tempCanvas);
+
+    try {
+      JsBarcode(tempCanvas, barcode, {
+        format: "EAN13",
+        width: 1.5,
+        height: 80,
+        displayValue: true,
+        fontSize: 16,
+        margin: 10,
+        background: "#ffffff",
+        lineColor: "#000000",
+      });
+
+      // Скачивание штрихкода
+      const link = document.createElement("a");
+      link.download = `barcode-${barcode}.png`;
+      link.href = tempCanvas.toDataURL("image/png");
+      document.body.appendChild(link);
+      link.click();
+
+      // Удаляем временные элементы
+      document.body.removeChild(link);
+      document.body.removeChild(tempCanvas);
+
+      toast.success({
+        id: genId(),
+        title: "Успешно",
+        description: `Штрихкод ${barcode} скачан`,
+      });
+    } catch (error) {
+      console.error("Ошибка при создании штрих-кода:", error);
+      toast.error({
+        id: genId(),
+        title: "Ошибка",
+        description: "Не удалось скачать штрихкод",
+      });
+    }
+  };
+
+  // Добавляем функцию genId на основе существующего кода
+  const genId = () => {
+    return Math.random().toString(36).substring(2, 9);
+  };
 
   if (loading) {
     return (
@@ -358,201 +446,132 @@ export default function ProductsPage() {
 
   return (
     <div className="py-8">
-      <H1>Список товаров</H1>
+      <div className="flex justify-between items-center mb-4">
+        <H1>Список товаров</H1>
+        <div className="flex gap-2">
+          <button
+            onClick={toggleSelectionMode}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              selectionMode
+                ? "bg-gray-200 text-gray-800"
+                : "bg-blue-600 text-white hover:bg-blue-700"
+            }`}
+          >
+            {selectionMode ? "Выйти из режима выбора" : "Выбрать товары"}
+          </button>
 
-      {/* Уведомление */}
-      {notification && (
-        <div
-          className={`mb-4 p-4 rounded-md ${
-            notification.type === "success"
-              ? "bg-green-50 text-green-900 border border-green-200"
-              : "bg-red-50 text-red-900 border border-red-200"
-          }`}
-        >
-          {notification.message}
+          {selectionMode && (
+            <button
+              onClick={deleteSelectedProducts}
+              disabled={selectedProducts.length === 0}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${
+                selectedProducts.length === 0
+                  ? "bg-red-300 cursor-not-allowed text-white"
+                  : "bg-red-600 text-white hover:bg-red-700"
+              }`}
+            >
+              Удалить выбранные ({selectedProducts.length})
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Панель действий с выбранными товарами */}
+      {selectionMode && selectedProducts.length > 0 && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-lg font-medium mb-2">
+            Выбрано товаров: {selectedProducts.length}
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Выберите коробку:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {isLoadingBoxes ? (
+                  <div className="animate-pulse w-full h-10 bg-gray-200 rounded"></div>
+                ) : boxes.length === 0 ? (
+                  <p className="text-gray-500">Нет доступных коробок</p>
+                ) : (
+                  <select
+                    value={selectedBoxId || ""}
+                    onChange={(e) => setSelectedBoxId(Number(e.target.value))}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-600 focus:ring-blue-600"
+                  >
+                    <option value="">Выберите коробку</option>
+                    {boxes.map((box) => (
+                      <option key={box.id} value={box.id}>
+                        {box.name} (#{box.barcode})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Количество:
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={quantityToAdd}
+                onChange={(e) =>
+                  setQuantityToAdd(Math.max(1, parseInt(e.target.value) || 1))
+                }
+                className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-600 focus:ring-blue-600"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <button
+              onClick={addSelectedProductsToBox}
+              disabled={isAddingToBox || !selectedBoxId}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
+            >
+              {isAddingToBox ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Добавление...
+                </>
+              ) : (
+                "Добавить в коробку"
+              )}
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="bg-white shadow-lg rounded-lg">
+      <div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-full mx-auto">
         <DataTable
           columns={columns}
           data={products}
           emptyMessage="Нет доступных товаров"
+          className="w-full"
         />
       </div>
-
-      {/* Модальное окно для редактирования */}
-      {editModalOpen && (
-        <div className="fixed inset-0 overflow-y-auto z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 md:mx-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Редактировать товар</h2>
-              <button
-                onClick={closeEditModal}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleEditSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="editName"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Название:
-                </label>
-                <input
-                  type="text"
-                  id="editName"
-                  name="name"
-                  value={editFormData.name}
-                  onChange={handleEditChange}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="editQuantity"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Количество:
-                </label>
-                <input
-                  type="number"
-                  id="editQuantity"
-                  name="quantity"
-                  value={editFormData.quantity}
-                  onChange={handleEditChange}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="editDescription"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Описание:
-                </label>
-                <textarea
-                  id="editDescription"
-                  name="description"
-                  value={editFormData.description}
-                  onChange={handleEditChange}
-                  rows={3}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="editPrice"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Цена:
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  id="editPrice"
-                  name="price"
-                  value={editFormData.price}
-                  onChange={handleEditChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="editCategory"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Категория:
-                </label>
-                <input
-                  type="text"
-                  id="editCategory"
-                  name="category"
-                  value={editFormData.category}
-                  onChange={handleEditChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Текущие фото:
-                </label>
-                <div className="mt-1 flex space-x-2 overflow-x-auto pb-2">
-                  {currentProduct?.photo_paths &&
-                  currentProduct.photo_paths.length > 0 ? (
-                    currentProduct.photo_paths.map((photo, index) => (
-                      <div
-                        key={index}
-                        className="h-16 w-16 relative flex-shrink-0"
-                      >
-                        <ProductImage
-                          src={photo}
-                          alt={`Фото ${index + 1}`}
-                          fill
-                          className="rounded-md object-cover"
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    <span className="text-sm text-gray-500">
-                      Нет фотографий
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="editPhotos"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Новые фотографии (до 10):
-                </label>
-                <input
-                  type="file"
-                  id="editPhotos"
-                  name="photos"
-                  onChange={handleEditFileChange}
-                  multiple
-                  accept="image/*"
-                  className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
-              >
-                {submitting ? "Сохранение..." : "Сохранить"}
-              </button>
-            </form>
-
-            {editResult && (
-              <div
-                className={`mt-4 p-3 rounded-md ${
-                  editResult.success
-                    ? "bg-green-50 text-green-800"
-                    : "bg-red-50 text-red-800"
-                }`}
-              >
-                {editResult.message}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

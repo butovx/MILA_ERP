@@ -81,7 +81,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     );
 
     return NextResponse.json({
-      message: "Товар удален из коробки",
+      message: "Товар убран из коробки",
     });
   } catch (error) {
     console.error("Ошибка при удалении товара из коробки:", error);

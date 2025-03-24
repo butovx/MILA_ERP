@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 interface Column<T> {
   key: string;
-  header: string;
+  header: string | React.ReactNode;
   render: (item: T) => React.ReactNode;
   mobilePriority?: number; // Приоритет отображения на мобильных устройствах (1 - высший)
 }
@@ -61,21 +61,18 @@ export default function DataTable<T>({
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-3 py-2 text-center text-gray-500"
+                  className="px-3 py-3 text-center text-gray-500"
                 >
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               data.map((item, index) => (
-                <tr
-                  key={index}
-                  className="hover:bg-gray-50 !dark:hover:bg-transparent"
-                >
+                <tr key={index} className="hover:bg-gray-50">
                   {columns.map((column) => (
                     <td
                       key={column.key}
-                      className="px-3 py-2 whitespace-nowrap"
+                      className="px-3 py-2 whitespace-normal"
                     >
                       {column.render(item)}
                     </td>
@@ -119,7 +116,7 @@ export default function DataTable<T>({
                       onClick={() =>
                         setExpandedRow(expandedRow === index ? null : index)
                       }
-                      className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                      className="mt-2 text-xs text-primary-600 hover:text-primary-800"
                     >
                       {expandedRow === index ? "Скрыть" : "Показать больше"}
                     </button>

@@ -15,6 +15,10 @@ import {
 import { Box } from "@/types";
 import Barcode from "@/components/Barcode";
 import DataTable from "@/components/DataTable";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
+import JsBarcode from "jsbarcode";
 
 export default function BoxesPage() {
   const [boxes, setBoxes] = useState<Box[]>([]);
@@ -35,6 +39,12 @@ export default function BoxesPage() {
     direction: "asc" | "desc";
   } | null>(null);
 
+  // Добавляем состояние для режима выбора
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedBoxes, setSelectedBoxes] = useState<number[]>([]);
+  const [isAllSelected, setIsAllSelected] = useState(false);
+  const [deletingBoxesIds, setDeletingBoxesIds] = useState<number[]>([]);
+
   useEffect(() => {
     fetchBoxes();
   }, []);
@@ -51,6 +61,11 @@ export default function BoxesPage() {
     } catch (err) {
       setError("Не удалось загрузить список коробок");
       console.error(err);
+      toast.error({
+        id: genId(),
+        title: "Ошибка",
+        description: "Не удалось загрузить список коробок",
+      });
     } finally {
       setLoading(false);
     }
@@ -60,7 +75,11 @@ export default function BoxesPage() {
     e.preventDefault();
 
     if (!boxName.trim()) {
-      setCreateResult({ success: false, message: "Введите название коробки" });
+      toast.warning({
+        id: genId(),
+        title: "Предупреждение",
+        description: "Введите название коробки",
+      });
       return;
     }
 
@@ -79,24 +98,27 @@ export default function BoxesPage() {
       const result = await response.json();
 
       if (response.ok) {
-        setCreateResult({
-          success: true,
-          message: `Коробка создана с артикулом: ${result.barcode}`,
+        toast.success({
+          id: genId(),
+          title: "Коробка создана",
+          description: `Артикул: ${result.barcode}`,
         });
         setBoxName("");
         fetchBoxes(); // Обновляем список коробок
       } else {
-        setCreateResult({
-          success: false,
-          message: result.error || "Ошибка при создании коробки",
+        toast.error({
+          id: genId(),
+          title: "Ошибка",
+          description: result.error || "Ошибка при создании коробки",
         });
       }
     } catch (error) {
-      setCreateResult({
-        success: false,
-        message: "Произошла ошибка при отправке формы",
-      });
       console.error("Ошибка при отправке формы:", error);
+      toast.error({
+        id: genId(),
+        title: "Ошибка",
+        description: "Произошла ошибка при отправке формы",
+      });
     } finally {
       setCreating(false);
     }
@@ -114,13 +136,26 @@ export default function BoxesPage() {
       if (response.ok) {
         // Удаляем коробку из списка
         setBoxes(boxes.filter((b) => b.id !== id));
+        toast.success({
+          id: genId(),
+          title: "Успешно",
+          description: "Коробка удалена",
+        });
       } else {
         const data = await response.json();
-        alert(data.error || "Ошибка при удалении коробки");
+        toast.error({
+          id: genId(),
+          title: "Ошибка",
+          description: data.error || "Ошибка при удалении коробки",
+        });
       }
     } catch (error) {
       console.error("Ошибка при удалении коробки:", error);
-      alert("Произошла ошибка при удалении коробки");
+      toast.error({
+        id: genId(),
+        title: "Ошибка",
+        description: "Произошла ошибка при удалении коробки",
+      });
     } finally {
       setDeletingBoxId(null);
     }
@@ -130,10 +165,19 @@ export default function BoxesPage() {
     navigator.clipboard
       .writeText(barcode)
       .then(() => {
-        alert(`Штрихкод ${barcode} скопирован в буфер обмена`);
+        toast.success({
+          id: genId(),
+          title: "Скопировано",
+          description: `Штрихкод ${barcode} скопирован в буфер обмена`,
+        });
       })
       .catch((err) => {
         console.error("Ошибка при копировании:", err);
+        toast.error({
+          id: genId(),
+          title: "Ошибка",
+          description: "Не удалось скопировать штрихкод",
+        });
       });
   };
 
@@ -155,6 +199,11 @@ export default function BoxesPage() {
     return [...boxes].sort((a, b) => {
       const aValue = a[sortConfig.key as keyof Box];
       const bValue = b[sortConfig.key as keyof Box];
+
+      // Обработка undefined значений
+      if (aValue === undefined && bValue === undefined) return 0;
+      if (aValue === undefined) return 1;
+      if (bValue === undefined) return -1;
 
       if (aValue < bValue) {
         return sortConfig.direction === "asc" ? -1 : 1;
@@ -178,14 +227,174 @@ export default function BoxesPage() {
     setSortConfig({ key, direction });
   };
 
+  const genId = () => {
+    return Math.random().toString(36).substring(2, 9);
+  };
+
+  // Функция для скачивания штрихкода
+  const downloadBarcode = (barcode: string) => {
+    // Создаем временный элемент canvas с компонентом Barcode
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.id = `temp-barcode-${barcode}`;
+    document.body.appendChild(tempCanvas);
+
+    try {
+      JsBarcode(tempCanvas, barcode, {
+        format: "EAN13",
+        width: 1.5,
+        height: 80,
+        displayValue: true,
+        fontSize: 16,
+        margin: 10,
+        background: "#ffffff",
+        lineColor: "#000000",
+      });
+
+      // Скачивание штрихкода
+      const link = document.createElement("a");
+      link.download = `barcode-${barcode}.png`;
+      link.href = tempCanvas.toDataURL("image/png");
+      document.body.appendChild(link);
+      link.click();
+
+      // Удаляем временные элементы
+      document.body.removeChild(link);
+      document.body.removeChild(tempCanvas);
+
+      toast.success({
+        id: genId(),
+        title: "Успешно",
+        description: `Штрихкод ${barcode} скачан`,
+      });
+    } catch (error) {
+      console.error("Ошибка при создании штрих-кода:", error);
+      toast.error({
+        id: genId(),
+        title: "Ошибка",
+        description: "Не удалось скачать штрихкод",
+      });
+    }
+  };
+
+  // Добавляем функции для работы с выбранными коробками
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedBoxes([]);
+    setIsAllSelected(false);
+  };
+
+  const toggleBoxSelection = (boxId: number) => {
+    if (selectedBoxes.includes(boxId)) {
+      setSelectedBoxes(selectedBoxes.filter((id) => id !== boxId));
+    } else {
+      setSelectedBoxes([...selectedBoxes, boxId]);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedBoxes([]);
+    } else {
+      setSelectedBoxes(boxes.map((box) => box.id));
+    }
+    setIsAllSelected(!isAllSelected);
+  };
+
+  const deleteSelectedBoxes = async () => {
+    if (selectedBoxes.length === 0) return;
+
+    if (
+      !confirm(
+        `Вы действительно хотите удалить выбранные коробки (${selectedBoxes.length} шт.)?\nЭто действие нельзя отменить.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingBoxesIds([...selectedBoxes]);
+
+    try {
+      const results = await Promise.all(
+        selectedBoxes.map((id) =>
+          fetch(`/api/boxes/${id}`, { method: "DELETE" })
+        )
+      );
+
+      const allSuccessful = results.every((res) => res.ok);
+
+      if (allSuccessful) {
+        setBoxes(boxes.filter((b) => !selectedBoxes.includes(b.id)));
+        toast.success({
+          id: genId(),
+          title: "Успешно",
+          description: `Удалено ${selectedBoxes.length} коробок`,
+        });
+        setSelectedBoxes([]);
+      } else {
+        toast.error({
+          id: genId(),
+          title: "Ошибка",
+          description: "Произошла ошибка при удалении некоторых коробок",
+        });
+      }
+    } catch (error) {
+      console.error("Ошибка при удалении коробок:", error);
+      toast.error({
+        id: genId(),
+        title: "Ошибка",
+        description: "Произошла ошибка при удалении коробок",
+      });
+    } finally {
+      setDeletingBoxesIds([]);
+    }
+  };
+
   const columns = [
+    ...(selectionMode
+      ? [
+          {
+            key: "select",
+            header: (
+              <div className="flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </div>
+            ),
+            render: (box: Box) => (
+              <div className="flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={selectedBoxes.includes(box.id)}
+                  onChange={() => toggleBoxSelection(box.id)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </div>
+            ),
+            mobilePriority: 1,
+          },
+        ]
+      : []),
     {
       key: "barcode",
       header: "Штрихкод",
       sortable: true,
       render: (box: Box) => (
         <div className="flex items-center space-x-2">
-          <span>{box.barcode}</span>
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              downloadBarcode(box.barcode);
+            }}
+            className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+            title="Нажмите для скачивания штрихкода"
+          >
+            {box.barcode}
+          </a>
           <button
             onClick={() => copyBarcodeToClipboard(box.barcode)}
             className="text-gray-400 hover:text-gray-600"
@@ -201,55 +410,38 @@ export default function BoxesPage() {
       key: "name",
       header: "Название",
       sortable: true,
-      render: (box: Box) => <div title={box.name}>{box.name}</div>,
+      render: (box: Box) => (
+        <Link
+          href={`/box-content?barcode=${box.barcode}`}
+          className="text-blue-600 hover:text-blue-800 hover:underline"
+          title={box.name}
+        >
+          {box.name}
+        </Link>
+      ),
       mobilePriority: 1,
     },
     {
-      key: "actions",
-      header: "Действия",
+      key: "items_count",
+      header: "Товаров",
+      sortable: true,
       render: (box: Box) => (
-        <div className="flex space-x-2">
-          <Link
-            href={`/box-content?barcode=${box.barcode}`}
-            className="text-blue-600 hover:text-blue-900 p-1"
-            title="Просмотреть содержимое"
-          >
-            <ArrowTopRightOnSquareIcon className="h-5 w-5" />
-          </Link>
-          <button
-            onClick={() => handleDeleteBox(box.id)}
-            className="text-red-600 hover:text-red-900 p-1"
-            title="Удалить"
-            disabled={deletingBoxId === box.id}
-          >
-            {deletingBoxId === box.id ? (
-              <svg
-                className="animate-spin h-5 w-5 text-red-600"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            ) : (
-              <TrashIcon className="h-5 w-5" />
-            )}
-          </button>
+        <div className="text-center font-medium">{box.items_count || 0}</div>
+      ),
+      mobilePriority: 2,
+    },
+    {
+      key: "total_price",
+      header: "Стоимость",
+      sortable: true,
+      render: (box: Box) => (
+        <div className="text-right font-medium">
+          {box.total_price
+            ? `${Math.round(box.total_price).toLocaleString("ru-RU")} ₽`
+            : "0 ₽"}
         </div>
       ),
-      mobilePriority: 1,
+      mobilePriority: 2,
     },
   ];
 
@@ -279,7 +471,60 @@ export default function BoxesPage() {
 
       {/* Список коробок */}
       <div className="bg-white shadow rounded-lg p-6 mb-6 dark:bg-gray-800">
-        <h2 className="text-xl font-semibold mb-4">Список коробок</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Список коробок</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={toggleSelectionMode}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${
+                selectionMode
+                  ? "bg-gray-200 text-gray-800"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              {selectionMode ? "Выйти из режима выбора" : "Выбрать коробки"}
+            </button>
+
+            {selectionMode && (
+              <button
+                onClick={deleteSelectedBoxes}
+                disabled={selectedBoxes.length === 0}
+                className={`px-4 py-2 rounded-md text-sm font-medium ${
+                  selectedBoxes.length === 0
+                    ? "bg-red-300 cursor-not-allowed text-white"
+                    : "bg-red-600 text-white hover:bg-red-700"
+                }`}
+              >
+                {deletingBoxesIds.length > 0 ? (
+                  <span className="flex items-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Удаление...
+                  </span>
+                ) : (
+                  `Удалить (${selectedBoxes.length})`
+                )}
+              </button>
+            )}
+          </div>
+        </div>
 
         {boxes.length === 0 ? (
           <p className="text-gray-500 dark:text-gray-400">
