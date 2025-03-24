@@ -74,8 +74,8 @@ A modern ERP system for warehouse management, built with Next.js 15, React 19, T
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/mila_erp.git
-   cd mila_erp
+   git clone https://github.com/butovx/milaerp.git
+   cd milaerp
    ```
 
 2. Install dependencies:
