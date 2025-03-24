@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { H1, Label, ErrorText, SuccessText } from "@/components/Typography";
+import Barcode from "@/components/Barcode";
 
 export default function AddProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,6 +18,7 @@ export default function AddProductPage() {
   const [result, setResult] = useState<{
     message?: string;
     error?: string;
+    barcode?: string;
   } | null>(null);
 
   const handleChange = (
@@ -32,6 +34,28 @@ export default function AddProductPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFiles(e.target.files);
+    }
+  };
+
+  // Функция загрузки штрих-кода
+  const downloadBarcode = async (barcode: string) => {
+    try {
+      const response = await fetch(`/api/barcode?code=${barcode}`);
+      if (!response.ok) {
+        throw new Error("Ошибка при получении штрихкода");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `barcode-${barcode}.png`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Ошибка при скачивании штрихкода:", error);
+      alert("Не удалось скачать штрихкод");
     }
   };
 
@@ -60,7 +84,14 @@ export default function AddProductPage() {
       const result = await response.json();
 
       if (response.ok) {
-        setResult({ message: result.message });
+        // Используем поле barcode, переданное с сервера
+        const barcode = result.barcode;
+
+        setResult({
+          message: result.message,
+          barcode: barcode,
+        });
+
         setFormData({
           name: "",
           quantity: "",
@@ -73,6 +104,11 @@ export default function AddProductPage() {
         // Сбрасываем input для файлов
         const fileInput = document.getElementById("photos") as HTMLInputElement;
         if (fileInput) fileInput.value = "";
+
+        // Если штрих-код найден, скачиваем его
+        if (barcode) {
+          downloadBarcode(barcode); // Автоматически скачиваем штрих-код
+        }
       } else {
         setResult({
           error: result.error || "Произошла ошибка при добавлении товара",
@@ -212,6 +248,22 @@ export default function AddProductPage() {
         <div className="mt-4">
           {result.message && <SuccessText>{result.message}</SuccessText>}
           {result.error && <ErrorText>{result.error}</ErrorText>}
+          {result.barcode && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <p className="text-blue-800 font-medium">Штрих-код товара:</p>
+              <Barcode value={result.barcode} className="mt-2" />
+              <p className="text-blue-700 mt-1">
+                Если загрузка не началась, нажмите{" "}
+                <button
+                  onClick={() => downloadBarcode(result.barcode!)}
+                  className="text-blue-600 underline font-medium hover:text-blue-800"
+                >
+                  здесь
+                </button>{" "}
+                для скачивания.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

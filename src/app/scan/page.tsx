@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Product } from "@/types";
 import ProductImage from "@/components/ProductImage";
+import Barcode from "@/components/Barcode";
 import Link from "next/link";
 import {
   CameraIcon,
@@ -202,7 +203,17 @@ export default function ScanPage() {
         {barcode && (
           <div className="mt-4 p-4 bg-green-50 rounded-lg">
             <p className="text-green-800 font-medium">Отсканирован штрихкод:</p>
-            <p className="text-xl font-mono mt-2">{barcode}</p>
+            <div className="mt-2">
+              <Barcode
+                value={barcode}
+                height={80}
+                width={1.5}
+                fontSize={16}
+                margin={10}
+                className="max-w-full"
+                textMargin={5}
+              />
+            </div>
           </div>
         )}
 

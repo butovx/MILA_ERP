@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "node server.ts",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "server": "ts-node server.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -41,6 +42,7 @@
     "eslint-config-next": "15.2.3",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.4.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

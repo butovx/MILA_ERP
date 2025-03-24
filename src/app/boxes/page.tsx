@@ -9,6 +9,7 @@ import {
   DocumentDuplicateIcon,
 } from "@heroicons/react/24/outline";
 import { Box } from "@/types";
+import Barcode from "@/components/Barcode";
 
 export default function BoxesPage() {
   const [boxes, setBoxes] = useState<Box[]>([]);
@@ -179,11 +180,22 @@ export default function BoxesPage() {
                 {boxes.map((box) => (
                   <tr key={box.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className="text-sm font-mono">{box.barcode}</span>
+                      <div className="flex flex-col">
+                        <div className="text-sm font-mono mb-1">
+                          {box.barcode}
+                        </div>
+                        <Barcode
+                          value={box.barcode}
+                          height={50}
+                          width={1}
+                          fontSize={12}
+                          margin={5}
+                          className="max-w-full"
+                          textMargin={3}
+                        />
                         <button
                           onClick={() => copyBarcodeToClipboard(box.barcode)}
-                          className="ml-2 text-gray-400 hover:text-gray-600"
+                          className="mt-1 text-gray-400 hover:text-gray-600 self-start"
                           title="Копировать штрихкод"
                         >
                           <DocumentDuplicateIcon className="h-4 w-4" />

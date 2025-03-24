@@ -1,5 +1,5 @@
 import { createCanvas } from "canvas";
-import bwipjs from "bwip-js";
+import JsBarcode from "jsbarcode";
 
 /**
  * Генерирует случайный штрихкод EAN13 с заданным префиксом.
@@ -33,6 +33,12 @@ export function generateEAN13(prefix: string = "460"): string {
   return code + checksumDigit;
 }
 
+// Форматирует строку EAN-13 в виде "X XXXXXX XXXXXX"
+function formatEAN13(code: string): string {
+  if (code.length !== 13) return code;
+  return `${code.substring(0, 1)} ${code.substring(1, 7)} ${code.substring(7)}`;
+}
+
 /**
  * Генерирует изображение штрихкода в формате PNG.
  *
@@ -41,23 +47,41 @@ export function generateEAN13(prefix: string = "460"): string {
  */
 export async function generateBarcodeImage(code: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    bwipjs.toBuffer(
-      {
-        bcid: "ean13", // Тип штрихкода
-        text: code, // Текст для кодирования
-        scale: 3, // Масштаб изображения
-        height: 10, // Высота штрихкода
-        includetext: true, // Показать текст штрихкода
-        textxalign: "center", // Выравнивание текста
-        backgroundcolor: "FFFFFF", // Белый фон
-      },
-      function (err: Error | null, buffer: Buffer) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(buffer);
-        }
+    try {
+      const canvas = createCanvas(300, 110);
+
+      JsBarcode(canvas, code, {
+        format: "EAN13",
+        width: 2,
+        height: 80,
+        displayValue: true,
+        fontSize: 16,
+        margin: 10,
+        background: "#ffffff",
+        lineColor: "#000000",
+      });
+
+      const ctx = canvas.getContext("2d");
+
+      if (code.length === 13) {
+        // Очищаем область, где был стандартный текст
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 70, canvas.width, 30);
+
+        // Рисуем форматированный текст
+        ctx.fillStyle = "#000000";
+        ctx.textBaseline = "top";
+        ctx.font = "14px monospace";
+        ctx.textAlign = "center";
+
+        const formattedText = formatEAN13(code);
+        ctx.fillText(formattedText, canvas.width / 2, 75);
       }
-    );
+
+      const buffer = canvas.toBuffer("image/png");
+      resolve(buffer);
+    } catch (error) {
+      reject(error);
+    }
   });
 }

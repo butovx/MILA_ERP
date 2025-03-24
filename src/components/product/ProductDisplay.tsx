@@ -9,6 +9,7 @@ import {
   ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import ProductImage from "@/components/ProductImage";
+import Barcode from "@/components/Barcode";
 
 interface ProductDisplayProps {
   productId: string;
@@ -237,6 +238,21 @@ export default function ProductDisplay({ productId }: ProductDisplayProps) {
                 </div>
               </div>
             )}
+
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-2">Штрихкод</h2>
+              <div className="bg-white p-3 border rounded-lg">
+                <Barcode
+                  value={product.barcode}
+                  height={80}
+                  width={1.5}
+                  fontSize={16}
+                  margin={10}
+                  className="max-w-full"
+                  textMargin={5}
+                />
+              </div>
+            </div>
 
             <button
               onClick={downloadBarcode}

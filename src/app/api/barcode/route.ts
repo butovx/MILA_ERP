@@ -3,16 +3,15 @@ import { generateBarcodeImage } from "@/utils/barcode";
 
 // Генерация и получение изображения штрихкода
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const code = searchParams.get("code");
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get("code");
 
-    if (!code) {
-      return NextResponse.json(
-        { error: "Не указан штрихкод" },
-        { status: 400 }
-      );
-    }
+  if (!code) {
+    return new NextResponse("Barcode is required", { status: 400 });
+  }
+
+  try {
+    console.log("Generating barcode for code:", code); // Логирование
 
     // Проверка длины штрихкода для формата EAN13
     if (code.length !== 13) {
@@ -22,7 +21,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Генерируем изображение штрихкода
+    // Генерируем изображение штрихкода с использованием JsBarcode
     const barcodeImage = await generateBarcodeImage(code);
 
     // Возвращаем изображение штрихкода
@@ -33,10 +32,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Ошибка при генерации штрихкода:", error);
-    return NextResponse.json(
-      { error: "Ошибка при генерации штрихкода" },
-      { status: 500 }
-    );
+    console.error("Error generating barcode:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

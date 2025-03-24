@@ -10,6 +10,7 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import ProductImage from "@/components/ProductImage";
+import Barcode from "@/components/Barcode";
 import { Box, Product, BoxItem } from "@/types";
 
 export default function BoxContentPage() {
@@ -28,6 +29,9 @@ export default function BoxContentPage() {
     success?: boolean;
     message?: string;
   } | null>(null);
+  const [addedProductBarcode, setAddedProductBarcode] = useState<string | null>(
+    null
+  );
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<BoxItem | null>(null);
@@ -97,6 +101,7 @@ export default function BoxContentPage() {
 
     setAddItemLoading(true);
     setAddItemResult(null);
+    setAddedProductBarcode(null);
 
     try {
       const response = await fetch(`/api/box-items`, {
@@ -118,6 +123,13 @@ export default function BoxContentPage() {
           success: true,
           message: "Товар добавлен в коробку",
         });
+
+        // Сохраняем штрих-код добавленного товара для отображения и скачивания
+        setAddedProductBarcode(productBarcode);
+
+        // Скачиваем штрих-код автоматически
+        downloadBarcode(productBarcode);
+
         setProductBarcode("");
         setProductQuantity("1");
         fetchBoxContent(); // Обновляем содержимое коробки
@@ -171,6 +183,30 @@ export default function BoxContentPage() {
     setEditModalOpen(false);
     setEditingItem(null);
     setEditResult(null);
+  };
+
+  // Функция загрузки штрих-кода
+  const downloadBarcode = async (barcode: string) => {
+    try {
+      const response = await fetch(`/api/barcode?code=${barcode}`);
+
+      if (!response.ok) {
+        throw new Error("Ошибка при получении штрихкода");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `barcode-${barcode}.png`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Ошибка при скачивании штрихкода:", error);
+      alert("Не удалось скачать штрихкод");
+    }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -280,15 +316,32 @@ export default function BoxContentPage() {
           className="inline-flex items-center text-blue-600 hover:text-blue-800"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          Вернуться к списку коробок
+          Назад к списку коробок
         </Link>
       </div>
 
       <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h1 className="text-2xl font-bold mb-1">Коробка: {box.name}</h1>
-        <p className="text-gray-500 mb-4">
-          Штрихкод: <span className="font-mono">{box.barcode}</span>
-        </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold mb-2">{box.name}</h1>
+            <div className="flex items-center mb-4">
+              <div className="mr-6">
+                <p className="text-sm text-gray-500">Штрихкод:</p>
+                <div className="mt-1">
+                  <Barcode
+                    value={box.barcode}
+                    height={60}
+                    width={1.2}
+                    fontSize={14}
+                    margin={10}
+                    className="max-w-full"
+                    textMargin={5}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <h2 className="text-xl font-semibold mt-6 mb-4">Содержимое коробки</h2>
 
@@ -373,7 +426,16 @@ export default function BoxContentPage() {
                       </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                      {item.barcode}
+                      <div className="mb-1">{item.barcode}</div>
+                      <Barcode
+                        value={item.barcode}
+                        height={50}
+                        width={1}
+                        fontSize={12}
+                        margin={5}
+                        className="max-w-full"
+                        textMargin={3}
+                      />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.quantity}
@@ -500,6 +562,24 @@ export default function BoxContentPage() {
             }`}
           >
             {addItemResult.message}
+          </div>
+        )}
+
+        {addedProductBarcode && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <p className="text-blue-800 font-medium">
+              Штрих-код товара автоматически скачан.
+            </p>
+            <p className="text-blue-700 mt-1">
+              Если загрузка не началась, нажмите{" "}
+              <button
+                onClick={() => downloadBarcode(addedProductBarcode)}
+                className="text-blue-600 underline font-medium hover:text-blue-800"
+              >
+                здесь
+              </button>{" "}
+              для скачивания.
+            </p>
           </div>
         )}
       </div>

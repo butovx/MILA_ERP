@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         message: `Товар добавлен с артикулом: ${barcode}`,
+        barcode: barcode,
       },
       { status: 201 }
     );
