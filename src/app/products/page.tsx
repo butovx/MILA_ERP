@@ -10,6 +10,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { H1, H2, Text, ErrorText } from "@/components/Typography";
 import ProductImage from "@/components/ProductImage";
+import DataTable from "@/components/DataTable";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -186,6 +187,152 @@ export default function ProductsPage() {
     }
   };
 
+  const columns = [
+    {
+      key: "id",
+      header: "ID",
+      render: (product: Product) => product.id,
+      mobilePriority: 3,
+    },
+    {
+      key: "photo",
+      header: "Фото",
+      render: (product: Product) =>
+        product.photo_paths && product.photo_paths.length > 0 ? (
+          <div className="h-10 w-10 relative">
+            <ProductImage
+              src={product.photo_paths[0]}
+              alt={product.name}
+              fill
+              className="rounded-md object-cover"
+            />
+          </div>
+        ) : (
+          <div className="h-10 w-10 bg-gray-200 rounded-md flex items-center justify-center">
+            <span className="text-gray-500 text-xs">Нет</span>
+          </div>
+        ),
+      mobilePriority: 1,
+    },
+    {
+      key: "name",
+      header: "Название",
+      render: (product: Product) => (
+        <div className="max-w-[150px] truncate" title={product.name}>
+          {product.name}
+        </div>
+      ),
+      mobilePriority: 1,
+    },
+    {
+      key: "quantity",
+      header: "Количество",
+      render: (product: Product) => product.quantity ?? "-",
+      mobilePriority: 2,
+    },
+    {
+      key: "price",
+      header: "Цена",
+      render: (product: Product) =>
+        product.price ? `${product.price} ₽` : "-",
+      mobilePriority: 2,
+    },
+    {
+      key: "category",
+      header: "Категория",
+      render: (product: Product) => product.category || "-",
+      mobilePriority: 3,
+    },
+    {
+      key: "barcode",
+      header: "Штрихкод",
+      render: (product: Product) => product.barcode,
+      mobilePriority: 3,
+    },
+    {
+      key: "boxes",
+      header: "Коробки",
+      render: (product: Product) =>
+        product.boxes && product.boxes.length > 0 ? (
+          <div className="flex flex-wrap gap-1 max-w-[120px]">
+            {product.boxes.slice(0, 2).map((box, index) => (
+              <Link
+                key={index}
+                href={`/box-content?barcode=${box.barcode}`}
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200"
+              >
+                {box.name.length > 10
+                  ? box.name.slice(0, 10) + "..."
+                  : box.name}
+              </Link>
+            ))}
+            {product.boxes.length > 2 && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                +{product.boxes.length - 2}
+              </span>
+            )}
+          </div>
+        ) : (
+          "-"
+        ),
+      mobilePriority: 3,
+    },
+    {
+      key: "actions",
+      header: "Действия",
+      render: (product: Product) => (
+        <div className="flex space-x-2">
+          <Link
+            href={`/product/${product.id}`}
+            className="text-blue-600 hover:text-blue-900 p-1"
+            title="Просмотреть"
+          >
+            <ArrowTopRightOnSquareIcon className="h-5 w-5" />
+          </Link>
+          <button
+            onClick={() => openEditModal(product)}
+            className="text-indigo-600 hover:text-indigo-900 p-1"
+            title="Редактировать"
+          >
+            <PencilIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => handleDelete(product.id)}
+            className="text-red-600 hover:text-red-900 p-1"
+            title="Удалить"
+            disabled={deletingProductId === product.id}
+          >
+            {deletingProductId === product.id ? (
+              <svg
+                className="animate-spin h-5 w-5 text-red-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            ) : (
+              <TrashIcon className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+      ),
+      mobilePriority: 1,
+    },
+  ];
+
   if (loading) {
     return (
       <div className="py-8 flex justify-center">
@@ -226,184 +373,12 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <div className="overflow-x-auto bg-white shadow-lg rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider"
-              >
-                ID
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider"
-              >
-                Фото
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider"
-              >
-                Название
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider"
-              >
-                Количество
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider"
-              >
-                Цена
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider"
-              >
-                Категория
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider"
-              >
-                Штрихкод
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider"
-              >
-                Коробки
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider"
-              >
-                Действия
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {products.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={9}
-                  className="px-6 py-5 text-center text-base text-gray-700"
-                >
-                  Нет доступных товаров
-                </td>
-              </tr>
-            ) : (
-              products.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-700">
-                    {product.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {product.photo_paths && product.photo_paths.length > 0 ? (
-                      <div className="h-14 w-14 relative">
-                        <ProductImage
-                          src={product.photo_paths[0]}
-                          alt={product.name}
-                          fill
-                          className="rounded-md object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-14 w-14 bg-gray-200 rounded-md flex items-center justify-center">
-                        <span className="text-gray-500 text-sm">Нет фото</span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">
-                    {product.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-700">
-                    {product.quantity ?? "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-700">
-                    {product.price ? `${product.price} ₽` : "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-700">
-                    {product.category || "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-700">
-                    {product.barcode}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-700">
-                    {product.boxes && product.boxes.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {product.boxes.map((box, index) => (
-                          <Link
-                            key={index}
-                            href={`/box-content?barcode=${box.barcode}`}
-                            className="inline-flex items-center px-2.5 py-1 rounded text-sm font-medium bg-blue-100 text-blue-800 hover:bg-blue-200"
-                          >
-                            {box.name}
-                          </Link>
-                        ))}
-                      </div>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-base text-gray-700">
-                    <div className="flex space-x-3">
-                      <Link
-                        href={`/product/${product.id}`}
-                        className="text-blue-600 hover:text-blue-900 p-1.5"
-                        title="Просмотреть"
-                      >
-                        <ArrowTopRightOnSquareIcon className="h-6 w-6" />
-                      </Link>
-                      <button
-                        onClick={() => openEditModal(product)}
-                        className="text-indigo-600 hover:text-indigo-900 p-1.5"
-                        title="Редактировать"
-                      >
-                        <PencilIcon className="h-6 w-6" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="text-red-600 hover:text-red-900 p-1.5"
-                        title="Удалить"
-                        disabled={deletingProductId === product.id}
-                      >
-                        {deletingProductId === product.id ? (
-                          <svg
-                            className="animate-spin h-6 w-6 text-red-600"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                        ) : (
-                          <TrashIcon className="h-6 w-6" />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="bg-white shadow-lg rounded-lg">
+        <DataTable
+          columns={columns}
+          data={products}
+          emptyMessage="Нет доступных товаров"
+        />
       </div>
 
       {/* Модальное окно для редактирования */}

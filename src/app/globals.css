@@ -139,10 +139,6 @@ a:hover {
   text-decoration: none;
 }
 
-.dark a {
-  color: #60a5fa;
-}
-
 /* Кастомные стили для карточек */
 .card {
   background-color: var(--card-bg);
@@ -155,6 +151,44 @@ a:hover {
 .card:hover {
   box-shadow: var(--shadow);
   transform: translateY(-2px);
+}
+
+/* Стили для таблиц */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+th,
+td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--input-border);
+}
+
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+.dark table {
+  background-color: var(--input-bg); /* Темный фон для таблицы */
+  color: var(--input-text); /* Светлый текст для таблицы */
+}
+
+.dark th,
+.dark td {
+  border-bottom: 1px solid var(--input-border); /* Границы в темном режиме */
+}
+
+.dark th {
+  background-color: var(--input-bg); /* Темный фон для заголовка */
+  color: var(--input-text); /* Светлый текст для заголовка */
+}
+
+.dark tbody tr {
+  background-color: var(--input-bg); /* Темный фон для каждой строки */
+  color: var(--input-text); /* Светлый текст для каждой строки */
 }
 
 /* Стили для кнопок */
