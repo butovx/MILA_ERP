@@ -24,6 +24,7 @@ export default function ScanPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [box, setBox] = useState<any>(null);
   const videoRef = useRef<HTMLDivElement>(null);
   const scanLogRef = useRef<HTMLDivElement>(null);
 
@@ -97,6 +98,16 @@ export default function ScanPage() {
         window.Quagga.onDetected((result: any) => {
           const code = result.codeResult.code;
           if (code && code.length === 13) {
+            // Проверяем префикс штрихкода
+            const prefix = code.substring(0, 3);
+            if (prefix !== "300" && prefix !== "200") {
+              setError(
+                `Неверный префикс штрихкода: ${prefix}. Допустимы только префиксы 300 и 200.`
+              );
+              setProduct(null);
+              return;
+            }
+
             // Останавливаем сканирование
             window.Quagga.stop();
             setIsScanning(false);
@@ -116,6 +127,16 @@ export default function ScanPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (manualBarcode.length === 13) {
+      // Проверяем префикс штрихкода
+      const prefix = manualBarcode.substring(0, 3);
+      if (prefix !== "300" && prefix !== "200") {
+        setError(
+          `Неверный префикс штрихкода: ${prefix}. Допустимы только префиксы 300 и 200.`
+        );
+        setProduct(null);
+        return;
+      }
+
       setBarcode(manualBarcode);
       addToScanLog(manualBarcode);
       fetchProduct(manualBarcode);
@@ -148,23 +169,47 @@ export default function ScanPage() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/products/barcode/${code}`);
+      // Сначала проверяем, является ли код штрихкодом коробки
+      const boxResponse = await fetch(`/api/boxes/barcode/${code}`);
 
-      if (!response.ok) {
-        if (response.status === 404) {
+      if (boxResponse.ok) {
+        const boxData = await boxResponse.json();
+        setBox(boxData);
+        setProduct(null);
+        // Останавливаем сканер
+        if (window.Quagga) {
+          window.Quagga.stop();
+          setIsScanning(false);
+        }
+        return;
+      }
+
+      // Если это не коробка, проверяем товар
+      const productResponse = await fetch(`/api/products/barcode/${code}`);
+
+      if (!productResponse.ok) {
+        if (productResponse.status === 404) {
           setError(`Товар со штрихкодом ${code} не найден`);
           setProduct(null);
+          setBox(null);
         } else {
           throw new Error("Ошибка при получении данных");
         }
         return;
       }
 
-      const data = await response.json();
+      const data = await productResponse.json();
       setProduct(data);
+      setBox(null);
+      // Останавливаем сканер, так как товар найден
+      if (window.Quagga) {
+        window.Quagga.stop();
+        setIsScanning(false);
+      }
     } catch (err) {
       setError("Ошибка при поиске товара");
       setProduct(null);
+      setBox(null);
       console.error(err);
     } finally {
       setLoading(false);
@@ -174,6 +219,7 @@ export default function ScanPage() {
   const restartScanner = () => {
     setBarcode(null);
     setProduct(null);
+    setBox(null);
     setError(null);
     setManualBarcode("");
     initializeScanner();
@@ -258,11 +304,11 @@ export default function ScanPage() {
         </div>
       </div>
 
-      {/* Информация о товаре */}
+      {/* Информация о товаре или коробке */}
       {loading && (
         <div className="text-center py-4">
           <div className="inline-block animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-          <p className="mt-2 text-gray-600">Поиск товара...</p>
+          <p className="mt-2 text-gray-600">Поиск...</p>
         </div>
       )}
 
@@ -270,6 +316,79 @@ export default function ScanPage() {
         <div className="bg-red-50 p-4 rounded-md mb-6">
           <h2 className="text-red-800 font-medium">Ошибка</h2>
           <p className="text-red-700 mt-1">{error}</p>
+        </div>
+      )}
+
+      {box && (
+        <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">
+            Содержимое коробки: {box.name}
+          </h2>
+
+          <div className="mb-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Штрихкод коробки:
+            </h3>
+            <Barcode
+              value={box.barcode}
+              height={80}
+              width={1.5}
+              fontSize={16}
+              margin={10}
+              className="max-w-full"
+              textMargin={5}
+              id={`barcode-${box.barcode}`}
+            />
+          </div>
+
+          {box.items && box.items.length > 0 ? (
+            <div className="mt-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Товары в коробке:
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {box.items.map((item: any) => (
+                  <div key={item.id} className="border rounded-lg p-4">
+                    <div className="flex items-start">
+                      {item.photo_paths && item.photo_paths.length > 0 && (
+                        <div className="w-20 h-20 mr-4">
+                          <ProductImage
+                            src={item.photo_paths[0]}
+                            alt={item.name}
+                            width={80}
+                            height={80}
+                            className="object-contain rounded-md"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="font-medium text-gray-900">
+                          {item.name}
+                        </h4>
+                        <p className="text-sm text-gray-500">
+                          Количество: {item.quantity}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Штрихкод: {item.barcode}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500">Коробка пуста</p>
+          )}
+
+          <div className="mt-4">
+            <Link
+              href={`/box-content?barcode=${box.barcode}`}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Управление содержимым
+            </Link>
+          </div>
         </div>
       )}
 

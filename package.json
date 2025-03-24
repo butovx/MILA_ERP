@@ -3,16 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node server.ts",
+    "dev": "NODE_OPTIONS='--loader ts-node/esm' next dev --experimental-https",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "server": "ts-node server.ts"
+    "lint": "next lint"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@vercel/blob": "^0.27.3",
-    "bwip-js": "^4.5.3",
     "canvas": "^3.1.0",
     "dotenv": "^16.4.7",
     "jsbarcode": "^3.11.6",

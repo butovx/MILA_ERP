@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mila ERP System
 
-## Getting Started
+Современная ERP-система для управления товарами и складом, построенная на Next.js 15. Система предоставляет функционал для работы с товарами, коробками и сканированием штрих-кодов.
 
-First, run the development server:
+## Основные возможности
+
+- 📦 Управление товарами и их характеристиками
+- 📱 Сканирование штрих-кодов с помощью камеры устройства
+- 📦 Управление коробками и их содержимым
+- 🏷️ Генерация и печать штрих-кодов
+- 🔍 Поиск и фильтрация товаров
+- 📊 Учет товаров и коробок
+
+## Технологический стек
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Стилизация**: Tailwind CSS
+- **База данных**: PostgreSQL
+- **Сканирование**: QuaggaJS, BWIP-JS
+- **UI компоненты**: Heroicons
+
+## Начало работы
+
+### Предварительные требования
+
+- Node.js 18 или выше
+- PostgreSQL
+- npm или yarn
+
+### Установка
+
+1. Клонируйте репозиторий:
+
+```bash
+git clone [url-репозитория]
+cd mila_erp_next
+```
+
+2. Установите зависимости:
+
+```bash
+npm install
+# или
+yarn install
+```
+
+3. Создайте файл `.env.local` на основе `.env.example` и настройте переменные окружения:
+
+```bash
+cp .env.example .env.local
+```
+
+4. Запустите сервер разработки:
 
 ```bash
 npm run dev
-# or
+# или
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Приложение будет доступно по адресу [https://localhost:3000](https://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Разработка
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Структура проекта
 
-## Learn More
+```
+src/
+├── app/              # Next.js App Router
+│   ├── api/         # API endpoints
+│   ├── products/    # Управление товарами
+│   ├── boxes/       # Управление коробками
+│   ├── scan/        # Сканирование штрих-кодов
+│   └── home/        # Главная страница
+├── components/      # React компоненты
+├── lib/            # Утилиты и конфигурации
+├── hooks/          # React хуки
+├── types/          # TypeScript типы
+└── utils/          # Вспомогательные функции
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Скрипты
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run dev` - Запуск сервера разработки
+- `npm run build` - Сборка проекта
+- `npm run start` - Запуск production сервера
+- `npm run lint` - Проверка кода линтером
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Безопасность
 
-## Deploy on Vercel
+- HTTPS включен по умолчанию
+- Защита от CSRF
+- Валидация входных данных
+- Безопасное хранение данных
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Лицензия
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[Укажите вашу лицензию]
+
+## Поддержка
+
+При возникновении проблем или вопросов, пожалуйста, создайте issue в репозитории проекта.
