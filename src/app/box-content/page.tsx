@@ -186,25 +186,19 @@ export default function BoxContentPage() {
   };
 
   // Функция загрузки штрих-кода
-  const downloadBarcode = async (barcode: string) => {
-    try {
-      const response = await fetch(`/api/barcode?code=${barcode}`);
-
-      if (!response.ok) {
-        throw new Error("Ошибка при получении штрихкода");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+  const downloadBarcode = (barcode: string) => {
+    const barcodeCanvas = document.getElementById(
+      `barcode-${barcode}`
+    ) as HTMLCanvasElement;
+    if (barcodeCanvas) {
       const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = url;
+      a.href = barcodeCanvas.toDataURL("image/png");
       a.download = `barcode-${barcode}.png`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Ошибка при скачивании штрихкода:", error);
+      document.body.removeChild(a);
+    } else {
+      console.error("Штрихкод не найден на странице");
       alert("Не удалось скачать штрихкод");
     }
   };
@@ -330,12 +324,13 @@ export default function BoxContentPage() {
                 <div className="mt-1">
                   <Barcode
                     value={box.barcode}
-                    height={60}
-                    width={1.2}
-                    fontSize={14}
+                    height={80}
+                    width={1.5}
+                    fontSize={16}
                     margin={10}
                     className="max-w-full"
                     textMargin={5}
+                    id={`barcode-${box.barcode}`}
                   />
                 </div>
               </div>
@@ -429,12 +424,13 @@ export default function BoxContentPage() {
                       <div className="mb-1">{item.barcode}</div>
                       <Barcode
                         value={item.barcode}
-                        height={50}
-                        width={1}
-                        fontSize={12}
-                        margin={5}
+                        height={80}
+                        width={1.5}
+                        fontSize={16}
+                        margin={10}
                         className="max-w-full"
-                        textMargin={3}
+                        textMargin={5}
+                        id={`barcode-${item.barcode}`}
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

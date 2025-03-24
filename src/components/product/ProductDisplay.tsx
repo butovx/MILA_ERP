@@ -59,27 +59,21 @@ export default function ProductDisplay({ productId }: ProductDisplayProps) {
     );
   };
 
-  const downloadBarcode = async () => {
+  const downloadBarcode = () => {
     if (!product) return;
 
-    try {
-      const response = await fetch(`/api/barcode?code=${product.barcode}`);
-
-      if (!response.ok) {
-        throw new Error("Ошибка при получении штрихкода");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+    const barcodeCanvas = document.getElementById(
+      `barcode-${product.barcode}`
+    ) as HTMLCanvasElement;
+    if (barcodeCanvas) {
       const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = url;
+      a.href = barcodeCanvas.toDataURL("image/png");
       a.download = `barcode-${product.barcode}.png`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Ошибка при скачивании штрихкода:", error);
+      document.body.removeChild(a);
+    } else {
+      console.error("Штрихкод не найден на странице");
       alert("Не удалось скачать штрихкод");
     }
   };
@@ -250,6 +244,7 @@ export default function ProductDisplay({ productId }: ProductDisplayProps) {
                   margin={10}
                   className="max-w-full"
                   textMargin={5}
+                  id={`barcode-${product.barcode}`}
                 />
               </div>
             </div>

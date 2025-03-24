@@ -20,6 +20,7 @@ export default function AddProductPage() {
     error?: string;
     barcode?: string;
   } | null>(null);
+  const [barcodeDownloaded, setBarcodeDownloaded] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -38,23 +39,20 @@ export default function AddProductPage() {
   };
 
   // Функция загрузки штрих-кода
-  const downloadBarcode = async (barcode: string) => {
-    try {
-      const response = await fetch(`/api/barcode?code=${barcode}`);
-      if (!response.ok) {
-        throw new Error("Ошибка при получении штрихкода");
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+  const downloadBarcode = (barcode: string) => {
+    const barcodeCanvas = document.getElementById(
+      `barcode-${barcode}`
+    ) as HTMLCanvasElement;
+    if (barcodeCanvas) {
       const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = url;
+      a.href = barcodeCanvas.toDataURL("image/png");
       a.download = `barcode-${barcode}.png`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Ошибка при скачивании штрихкода:", error);
+      document.body.removeChild(a);
+      setBarcodeDownloaded(true);
+    } else {
+      console.error("Штрихкод не найден на странице");
       alert("Не удалось скачать штрихкод");
     }
   };
@@ -63,6 +61,7 @@ export default function AddProductPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setResult(null);
+    setBarcodeDownloaded(false);
 
     try {
       const data = new FormData();
@@ -107,7 +106,10 @@ export default function AddProductPage() {
 
         // Если штрих-код найден, скачиваем его
         if (barcode) {
-          downloadBarcode(barcode); // Автоматически скачиваем штрих-код
+          // Добавляем небольшую задержку, чтобы компонент Barcode успел отрисоваться
+          setTimeout(() => {
+            downloadBarcode(barcode); // Автоматически скачиваем штрих-код
+          }, 500);
         }
       } else {
         setResult({
@@ -251,16 +253,31 @@ export default function AddProductPage() {
           {result.barcode && (
             <div className="mt-4 p-4 bg-blue-50 rounded-lg">
               <p className="text-blue-800 font-medium">Штрих-код товара:</p>
-              <Barcode value={result.barcode} className="mt-2" />
+              <Barcode
+                value={result.barcode}
+                height={80}
+                width={1.5}
+                fontSize={16}
+                margin={10}
+                className="max-w-full"
+                textMargin={5}
+                id={`barcode-${result.barcode}`}
+              />
               <p className="text-blue-700 mt-1">
-                Если загрузка не началась, нажмите{" "}
-                <button
-                  onClick={() => downloadBarcode(result.barcode!)}
-                  className="text-blue-600 underline font-medium hover:text-blue-800"
-                >
-                  здесь
-                </button>{" "}
-                для скачивания.
+                {barcodeDownloaded ? (
+                  "Штрихкод был автоматически скачан."
+                ) : (
+                  <>
+                    Если загрузка не началась, нажмите{" "}
+                    <button
+                      onClick={() => downloadBarcode(result.barcode!)}
+                      className="text-blue-600 underline font-medium hover:text-blue-800"
+                    >
+                      здесь
+                    </button>{" "}
+                    для скачивания.
+                  </>
+                )}
               </p>
             </div>
           )}

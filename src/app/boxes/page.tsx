@@ -186,12 +186,13 @@ export default function BoxesPage() {
                         </div>
                         <Barcode
                           value={box.barcode}
-                          height={50}
-                          width={1}
-                          fontSize={12}
-                          margin={5}
+                          height={80}
+                          width={1.5}
+                          fontSize={16}
+                          margin={10}
                           className="max-w-full"
-                          textMargin={3}
+                          textMargin={5}
+                          id={`barcode-${box.barcode}`}
                         />
                         <button
                           onClick={() => copyBarcodeToClipboard(box.barcode)}

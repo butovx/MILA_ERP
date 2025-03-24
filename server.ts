@@ -18,6 +18,6 @@ app.prepare().then(() => {
     })
     .listen(443, (err: Error | null) => {
       if (err) throw err;
-      console.log("> Ready on https://192.168.53.228");
+      console.log("> Ready on https://192.168.0.11");
     });
 });

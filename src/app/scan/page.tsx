@@ -212,6 +212,7 @@ export default function ScanPage() {
                 margin={10}
                 className="max-w-full"
                 textMargin={5}
+                id={`barcode-${barcode}`}
               />
             </div>
           </div>

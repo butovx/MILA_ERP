@@ -14,6 +14,7 @@ interface BarcodeProps {
   lineColor?: string;
   className?: string;
   textMargin?: number;
+  id?: string;
 }
 
 // Форматирует строку EAN-13 в виде "X XXXXXX XXXXXX"
@@ -24,17 +25,19 @@ function formatEAN13(code: string): string {
 
 export default function Barcode({
   value,
-  width = 2,
+  width = 1.5,
   height = 80,
-  fontSize = 15,
+  fontSize = 16,
   margin = 10,
   displayValue = true,
   background = "#ffffff",
   lineColor = "#000000",
-  className = "",
-  textMargin = 8,
+  className = "max-w-full",
+  textMargin = 5,
+  id,
 }: BarcodeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const uniqueId = id || `barcode-${value}`;
 
   useEffect(() => {
     if (canvasRef.current && value) {
@@ -91,5 +94,25 @@ export default function Barcode({
     textMargin,
   ]);
 
-  return <canvas ref={canvasRef} className={className} />;
+  // Функция для скачивания штрихкода
+  const downloadBarcode = () => {
+    if (canvasRef.current) {
+      const link = document.createElement("a");
+      link.download = `barcode-${value}.png`;
+      link.href = canvasRef.current.toDataURL("image/png");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  return (
+    <canvas
+      ref={canvasRef}
+      id={uniqueId}
+      className={`${className} cursor-pointer hover:opacity-90`}
+      onClick={downloadBarcode}
+      title="Нажмите для скачивания штрихкода"
+    />
+  );
 }
