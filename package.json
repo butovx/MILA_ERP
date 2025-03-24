@@ -1,9 +1,9 @@
 {
   "name": "mila_erp_next",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--loader ts-node/esm' next dev",
+    "dev": "NODE_OPTIONS='--loader ts-node/esm' next dev --experimental-https",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -15,7 +15,7 @@
     "dotenv": "^16.4.7",
     "jsbarcode": "^3.11.6",
     "multer": "^1.4.5-lts.2",
-    "next": "15.2.3",
+    "next": "^15.2.3",
     "next-connect": "^1.0.0",
     "pg": "^8.14.1",
     "quagga": "^0.12.1",
@@ -35,11 +35,12 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
-    "autoprefixer": "^10.4.17",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.2.3",
     "postcss": "^8.4.31",
-    "tailwindcss": "^3.4.1",
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
     "typescript": "^5"
   }

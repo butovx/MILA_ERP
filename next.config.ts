@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
   experimental: {},
   serverExternalPackages: ["sharp"],
   webpack: (config, { dev, isServer }) => {
-    if (dev && isServer) {
+    if (dev && isServer && process.env.NODE_ENV === "development") {
       const keyPath = path.resolve(__dirname, "certificates/localhost-key.pem");
       const certPath = path.resolve(__dirname, "certificates/localhost.pem");
 
@@ -46,7 +46,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  output: "standalone",
 };
 
 export default nextConfig;
