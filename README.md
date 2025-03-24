@@ -1,102 +1,169 @@
 # Mila ERP System
 
-Современная ERP-система для управления товарами и складом, построенная на Next.js 15. Система предоставляет функционал для работы с товарами, коробками и сканированием штрих-кодов.
+A modern ERP system for warehouse management, built with Next.js 15, React 19, TypeScript, and PostgreSQL.
 
-## Основные возможности
+## Features
 
-- 📦 Управление товарами и их характеристиками
-- 📱 Сканирование штрих-кодов с помощью камеры устройства
-- 📦 Управление коробками и их содержимым
-- 🏷️ Генерация и печать штрих-кодов
-- 🔍 Поиск и фильтрация товаров
-- 📊 Учет товаров и коробок
+- 📦 Box Management
 
-## Технологический стек
+  - Create and manage boxes
+  - Track box contents
+  - Generate box barcodes
+  - Scan boxes for quick access
 
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Стилизация**: Tailwind CSS
-- **База данных**: PostgreSQL
-- **Сканирование**: QuaggaJS, BWIP-JS
-- **UI компоненты**: Heroicons
+- 🏷️ Product Management
 
-## Начало работы
+  - Add and edit products
+  - Generate product barcodes
+  - Track product quantities
+  - Product categorization
+  - Photo attachments
 
-### Предварительные требования
+- 📱 Barcode Scanning
 
-- Node.js 18 или выше
-- PostgreSQL
-- npm или yarn
+  - Real-time barcode scanning
+  - Support for EAN-13 format
+  - Prefix validation (200 for boxes, 300 for products)
+  - Manual barcode entry
+  - Scan history
 
-### Установка
+- 🔍 Search and Filter
 
-1. Клонируйте репозиторий:
+  - Search products by name or barcode
+  - Filter products by category
+  - Advanced search options
 
-```bash
-git clone [url-репозитория]
-cd mila_erp_next
-```
+- 📊 Reports
+  - Box contents reports
+  - Product inventory reports
+  - Export functionality
 
-2. Установите зависимости:
+## Tech Stack
 
-```bash
-npm install
-# или
-yarn install
-```
+- **Frontend:**
 
-3. Создайте файл `.env.local` на основе `.env.example` и настройте переменные окружения:
+  - Next.js 15 (App Router)
+  - React 19
+  - TypeScript
+  - Tailwind CSS
+  - QuaggaJS (barcode scanning)
+  - Heroicons (UI icons)
+  - BWIP-JS (barcode generation)
 
-```bash
-cp .env.example .env.local
-```
+- **Backend:**
 
-4. Запустите сервер разработки:
+  - Next.js API Routes
+  - PostgreSQL
+  - Prisma ORM
+  - TypeScript
 
-```bash
-npm run dev
-# или
-yarn dev
-```
+- **Development Tools:**
+  - ESLint
+  - Prettier
+  - TypeScript
+  - Prisma Studio
 
-Приложение будет доступно по адресу [https://localhost:3000](https://localhost:3000)
+## Prerequisites
 
-## Разработка
+- Node.js 18 or higher
+- PostgreSQL 14 or higher
+- npm or yarn
 
-### Структура проекта
+## Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/yourusername/mila_erp.git
+   cd mila_erp
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Set up environment variables:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` with your database credentials and other settings.
+
+4. Set up the database:
+
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+5. Run the development server:
+
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Project Structure
 
 ```
 src/
-├── app/              # Next.js App Router
-│   ├── api/         # API endpoints
-│   ├── products/    # Управление товарами
-│   ├── boxes/       # Управление коробками
-│   ├── scan/        # Сканирование штрих-кодов
-│   └── home/        # Главная страница
-├── components/      # React компоненты
-├── lib/            # Утилиты и конфигурации
-├── hooks/          # React хуки
-├── types/          # TypeScript типы
-└── utils/          # Вспомогательные функции
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── boxes/             # Box management pages
+│   ├── products/          # Product management pages
+│   └── scan/              # Barcode scanning page
+├── components/            # Reusable components
+├── lib/                   # Utility functions and configurations
+├── prisma/               # Database schema and migrations
+└── types/                # TypeScript type definitions
 ```
 
-### Скрипты
+## API Documentation
 
-- `npm run dev` - Запуск сервера разработки
-- `npm run build` - Сборка проекта
-- `npm run start` - Запуск production сервера
-- `npm run lint` - Проверка кода линтером
+### Products
 
-## Безопасность
+- `GET /api/products` - Get all products
+- `GET /api/products/[id]` - Get product by ID
+- `GET /api/products/barcode/[code]` - Get product by barcode
+- `POST /api/products` - Create new product
+- `PUT /api/products/[id]` - Update product
+- `DELETE /api/products/[id]` - Delete product
 
-- HTTPS включен по умолчанию
-- Защита от CSRF
-- Валидация входных данных
-- Безопасное хранение данных
+### Boxes
 
-## Лицензия
+- `GET /api/boxes` - Get all boxes
+- `GET /api/boxes/[id]` - Get box by ID
+- `GET /api/boxes/barcode/[code]` - Get box by barcode
+- `POST /api/boxes` - Create new box
+- `PUT /api/boxes/[id]` - Update box
+- `DELETE /api/boxes/[id]` - Delete box
 
-[Укажите вашу лицензию]
+### Box Items
 
-## Поддержка
+- `GET /api/box-items` - Get all box items
+- `POST /api/box-items` - Add item to box
+- `DELETE /api/box-items/[boxId]/[productId]` - Remove item from box
 
-При возникновении проблем или вопросов, пожалуйста, создайте issue в репозитории проекта.
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For support, please open an issue in the GitHub repository or contact the development team.
