@@ -13,7 +13,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
 import { cn } from "@/utils/cn";
 import { buttonVariants } from "@/components/ui/button";
 import DataTable from "@/components/DataTable";
@@ -41,7 +40,6 @@ export default function ScanPage() {
   const [detectingCode, setDetectingCode] = useState<boolean>(false);
   const [detectedCode, setDetectedCode] = useState<string | null>(null);
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
-  const [notificationLocked, setNotificationLocked] = useState<boolean>(false);
   const processingRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -333,22 +331,8 @@ export default function ScanPage() {
                   return;
                 }
 
-                // Если уведомления заблокированы, просто выходим
-                if (notificationLocked) {
-                  console.log(
-                    `Уведомления заблокированы. Пропускаем обработку кода ${code}`
-                  );
-                  return;
-                }
-
                 // Сохраняем текущий код как последний просканированный
                 setLastScannedCode(code);
-
-                // Блокируем уведомления на некоторое время
-                setNotificationLocked(true);
-                setTimeout(() => {
-                  setNotificationLocked(false);
-                }, 3000); // Блокировка на 3 секунды
 
                 // Проверяем префикс
                 let prefix = code.substring(0, 3);
@@ -459,15 +443,6 @@ export default function ScanPage() {
         setBox(null);
         setBarcode(code);
 
-        // Показываем уведомление при успешном нахождении товара только если уведомления не заблокированы
-        if (!notificationLocked) {
-          toast({
-            title: "Найдено",
-            description: `Найден товар: ${data.name}`,
-            variant: "success",
-          });
-        }
-
         // Останавливаем сканер при успешном результате
         if (window.Quagga) {
           try {
@@ -515,15 +490,6 @@ export default function ScanPage() {
         setBox(boxData);
         setProduct(null);
         setBarcode(code);
-
-        // Показываем уведомление при успешном нахождении коробки только если уведомления не заблокированы
-        if (!notificationLocked) {
-          toast({
-            title: "Найдено",
-            description: `Найдена коробка: ${boxData.name}`,
-            variant: "success",
-          });
-        }
 
         // Загружаем содержимое коробки
         await fetchBoxContent(boxData.id);
@@ -654,23 +620,8 @@ export default function ScanPage() {
       // Удаляем временные элементы
       document.body.removeChild(link);
       document.body.removeChild(tempCanvas);
-
-      if (!notificationLocked) {
-        toast({
-          title: "Успешно",
-          description: `Штрихкод ${barcode} скачан`,
-          variant: "success",
-        });
-      }
     } catch (error) {
       console.error("Ошибка при создании штрих-кода:", error);
-      if (!notificationLocked) {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось скачать штрихкод",
-          variant: "destructive",
-        });
-      }
     }
   };
 
@@ -818,7 +769,279 @@ export default function ScanPage() {
           </CardContent>
         </Card>
 
-        {/* Карточка ручного ввода */}
+        {/* Результаты сканирования перемещены сюда */}
+        {(product || box) && (
+          <>
+            {/* Карточка результатов поиска */}
+            {product && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Найден товар</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col md:flex-row gap-6">
+                    <div className="md:w-1/3">
+                      {product.photo_paths && product.photo_paths.length > 0 ? (
+                        <ProductImage
+                          src={product.photo_paths[0]}
+                          alt={product.name}
+                          className="w-full rounded-lg"
+                        />
+                      ) : (
+                        <div className="bg-gray-100 rounded-lg aspect-square flex items-center justify-center">
+                          <p className="text-gray-400">Нет фото</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="md:w-2/3">
+                      <h2 className="text-2xl font-bold mb-4">
+                        {product.name}
+                      </h2>
+                      <div className="space-y-2">
+                        <div className="flex items-center">
+                          <span className="font-semibold w-32">Штрихкод:</span>
+                          <span className="font-mono">
+                            <a
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                downloadBarcode(product.barcode);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                              title="Нажмите для скачивания штрихкода"
+                            >
+                              {product.barcode}
+                            </a>
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="font-semibold w-32">Категория:</span>
+                          <span>{product.category || "Не указана"}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="font-semibold w-32">
+                            Количество:
+                          </span>
+                          <span>{product.quantity || 0} шт.</span>
+                        </div>
+                        {product.description && (
+                          <div className="mt-4">
+                            <span className="font-semibold block mb-2">
+                              Описание:
+                            </span>
+                            <p className="text-gray-700">
+                              {product.description}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-6 flex gap-2">
+                        <Link
+                          href={`/product/${product.id}`}
+                          className={cn(
+                            buttonVariants({ variant: "default" }),
+                            "no-underline"
+                          )}
+                        >
+                          Подробнее
+                        </Link>
+                        <Button variant="outline" onClick={restartScanner}>
+                          Сканировать другой товар
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Результат поиска коробки */}
+            {box && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Найдена коробка</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center">
+                      <span className="font-semibold w-32">Название:</span>
+                      <span className="text-lg font-medium">{box.name}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="font-semibold w-32">Штрихкод:</span>
+                      <span
+                        className="font-mono cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
+                        onClick={() => downloadBarcode(box.barcode)}
+                        title="Нажмите для скачивания штрихкода"
+                      >
+                        {box.barcode}
+                      </span>
+                    </div>
+                    <div className="mt-4">
+                      <Barcode
+                        value={box.barcode}
+                        height={80}
+                        width={1.5}
+                        fontSize={16}
+                        margin={10}
+                        className="max-w-full"
+                        textMargin={5}
+                        id={`barcode-${box.barcode}`}
+                      />
+                    </div>
+
+                    <div className="mt-6 flex gap-2">
+                      <Link
+                        href={`/box-content?barcode=${box.barcode}`}
+                        className={cn(
+                          buttonVariants({ variant: "default" }),
+                          "no-underline"
+                        )}
+                      >
+                        Перейти к содержимому
+                      </Link>
+                      <Button variant="outline" onClick={restartScanner}>
+                        Сканировать другой товар
+                      </Button>
+                    </div>
+
+                    {/* Отображение содержимого коробки */}
+                    <div className="mt-6">
+                      <h3 className="text-lg font-medium mb-3">
+                        Содержимое коробки
+                      </h3>
+
+                      {loadingBoxItems ? (
+                        <div className="flex items-center justify-center p-4">
+                          <div className="animate-spin h-5 w-5 text-primary-600 mr-3">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                          </div>
+                          <span className="text-primary-600">
+                            Загрузка содержимого...
+                          </span>
+                        </div>
+                      ) : (
+                        <DataTable
+                          columns={[
+                            {
+                              key: "photo",
+                              header: "",
+                              render: (item: BoxItem) => (
+                                <div className="w-10 h-10 rounded overflow-hidden">
+                                  {item.photo_paths &&
+                                  item.photo_paths.length > 0 ? (
+                                    <ProductImage
+                                      src={item.photo_paths[0]}
+                                      alt={item.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                      <span className="text-gray-400 text-xs">
+                                        Нет фото
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              ),
+                              mobilePriority: 1,
+                            },
+                            {
+                              key: "name",
+                              header: "Название",
+                              render: (item: BoxItem) => (
+                                <div className="font-medium text-gray-900">
+                                  {item.name}
+                                </div>
+                              ),
+                              mobilePriority: 1,
+                            },
+                            {
+                              key: "barcode",
+                              header: "Штрихкод",
+                              render: (item: BoxItem) => (
+                                <div className="font-mono">
+                                  <a
+                                    href="#"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      downloadBarcode(item.barcode);
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-xs"
+                                    title="Нажмите для скачивания штрихкода"
+                                  >
+                                    {item.barcode}
+                                  </a>
+                                </div>
+                              ),
+                              mobilePriority: 2,
+                            },
+                            {
+                              key: "quantity",
+                              header: "Количество",
+                              render: (item: BoxItem) => (
+                                <span className="text-sm font-medium">
+                                  {item.quantity} шт.
+                                </span>
+                              ),
+                              mobilePriority: 2,
+                            },
+                            {
+                              key: "price",
+                              header: "Цена",
+                              render: (item: BoxItem) => (
+                                <span className="text-sm">
+                                  {item.price ? `${item.price} ₽` : "-"}
+                                </span>
+                              ),
+                            },
+                            {
+                              key: "actions",
+                              header: "",
+                              render: (item: BoxItem) => (
+                                <Link
+                                  href={`/product/${item.id}`}
+                                  className="text-xs text-primary-600 hover:text-primary-800"
+                                >
+                                  Подробнее
+                                </Link>
+                              ),
+                              mobilePriority: 3,
+                            },
+                          ]}
+                          data={boxItems}
+                          emptyMessage="Коробка пуста"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* Карточка ручного ввода (перемещена вниз) */}
         <Card>
           <CardHeader>
             <CardTitle>Ручной ввод штрихкода</CardTitle>
@@ -883,7 +1106,7 @@ export default function ScanPage() {
         </Card>
       </div>
 
-      {/* Результаты сканирования */}
+      {/* Результаты сканирования - удаляем этот блок, так как переместили его выше */}
       <div className="mt-6">
         {error && (
           <Card className="border-warning-300 bg-warning-50 mb-4">
@@ -937,267 +1160,6 @@ export default function ScanPage() {
                 ></path>
               </svg>
               <p className="text-primary-700">Загрузка данных...</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Карточка результатов поиска */}
-        {product && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Найден товар</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="md:w-1/3">
-                  {product.photo_paths && product.photo_paths.length > 0 ? (
-                    <ProductImage
-                      src={product.photo_paths[0]}
-                      alt={product.name}
-                      className="w-full rounded-lg"
-                    />
-                  ) : (
-                    <div className="bg-gray-100 rounded-lg aspect-square flex items-center justify-center">
-                      <p className="text-gray-400">Нет фото</p>
-                    </div>
-                  )}
-                </div>
-                <div className="md:w-2/3">
-                  <h2 className="text-2xl font-bold mb-4">{product.name}</h2>
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <span className="font-semibold w-32">Штрихкод:</span>
-                      <span className="font-mono">
-                        <a
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            downloadBarcode(product.barcode);
-                          }}
-                          className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                          title="Нажмите для скачивания штрихкода"
-                        >
-                          {product.barcode}
-                        </a>
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="font-semibold w-32">Категория:</span>
-                      <span>{product.category || "Не указана"}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="font-semibold w-32">Количество:</span>
-                      <span>{product.quantity || 0} шт.</span>
-                    </div>
-                    {product.description && (
-                      <div className="mt-4">
-                        <span className="font-semibold block mb-2">
-                          Описание:
-                        </span>
-                        <p className="text-gray-700">{product.description}</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-6 flex gap-2">
-                    <Link
-                      href={`/product/${product.id}`}
-                      className={cn(
-                        buttonVariants({ variant: "default" }),
-                        "no-underline"
-                      )}
-                    >
-                      Подробнее
-                    </Link>
-                    <Button variant="outline" onClick={restartScanner}>
-                      Сканировать другой товар
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Результат поиска коробки */}
-        {box && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Найдена коробка</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <span className="font-semibold w-32">Название:</span>
-                  <span className="text-lg font-medium">{box.name}</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="font-semibold w-32">Штрихкод:</span>
-                  <span
-                    className="font-mono cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
-                    onClick={() => downloadBarcode(box.barcode)}
-                    title="Нажмите для скачивания штрихкода"
-                  >
-                    {box.barcode}
-                  </span>
-                </div>
-                <div className="mt-4">
-                  <Barcode
-                    value={box.barcode}
-                    height={80}
-                    width={1.5}
-                    fontSize={16}
-                    margin={10}
-                    className="max-w-full"
-                    textMargin={5}
-                    id={`barcode-${box.barcode}`}
-                  />
-                </div>
-
-                <div className="mt-6 flex gap-2">
-                  <Link
-                    href={`/box-content?barcode=${box.barcode}`}
-                    className={cn(
-                      buttonVariants({ variant: "default" }),
-                      "no-underline"
-                    )}
-                  >
-                    Перейти к содержимому
-                  </Link>
-                  <Button variant="outline" onClick={restartScanner}>
-                    Сканировать другой товар
-                  </Button>
-                </div>
-
-                {/* Отображение содержимого коробки */}
-                <div className="mt-6">
-                  <h3 className="text-lg font-medium mb-3">
-                    Содержимое коробки
-                  </h3>
-
-                  {loadingBoxItems ? (
-                    <div className="flex items-center justify-center p-4">
-                      <div className="animate-spin h-5 w-5 text-primary-600 mr-3">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                      </div>
-                      <span className="text-primary-600">
-                        Загрузка содержимого...
-                      </span>
-                    </div>
-                  ) : (
-                    <DataTable
-                      columns={[
-                        {
-                          key: "photo",
-                          header: "",
-                          render: (item: BoxItem) => (
-                            <div className="w-10 h-10 rounded overflow-hidden">
-                              {item.photo_paths &&
-                              item.photo_paths.length > 0 ? (
-                                <ProductImage
-                                  src={item.photo_paths[0]}
-                                  alt={item.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                                  <span className="text-gray-400 text-xs">
-                                    Нет фото
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          ),
-                          mobilePriority: 1,
-                        },
-                        {
-                          key: "name",
-                          header: "Название",
-                          render: (item: BoxItem) => (
-                            <div className="font-medium text-gray-900">
-                              {item.name}
-                            </div>
-                          ),
-                          mobilePriority: 1,
-                        },
-                        {
-                          key: "barcode",
-                          header: "Штрихкод",
-                          render: (item: BoxItem) => (
-                            <div className="font-mono">
-                              <a
-                                href="#"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  downloadBarcode(item.barcode);
-                                }}
-                                className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-xs"
-                                title="Нажмите для скачивания штрихкода"
-                              >
-                                {item.barcode}
-                              </a>
-                            </div>
-                          ),
-                          mobilePriority: 2,
-                        },
-                        {
-                          key: "quantity",
-                          header: "Количество",
-                          render: (item: BoxItem) => (
-                            <span className="text-sm font-medium">
-                              {item.quantity} шт.
-                            </span>
-                          ),
-                          mobilePriority: 2,
-                        },
-                        {
-                          key: "price",
-                          header: "Цена",
-                          render: (item: BoxItem) => (
-                            <span className="text-sm">
-                              {item.price ? `${item.price} ₽` : "-"}
-                            </span>
-                          ),
-                        },
-                        {
-                          key: "actions",
-                          header: "",
-                          render: (item: BoxItem) => (
-                            <Link
-                              href={`/product/${item.id}`}
-                              className="text-xs text-primary-600 hover:text-primary-800"
-                            >
-                              Подробнее
-                            </Link>
-                          ),
-                          mobilePriority: 3,
-                        },
-                      ]}
-                      data={boxItems}
-                      emptyMessage="Коробка пуста"
-                    />
-                  )}
-                </div>
-              </div>
             </CardContent>
           </Card>
         )}
