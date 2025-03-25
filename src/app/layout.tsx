@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import MainNav from "@/components/MainNav";
 import { Toaster } from "@/components/ui/toaster";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "MILA ERP",
@@ -39,24 +40,24 @@ export default function RootLayout({
                 © {new Date().getFullYear()} MILA ERP - Управление складом
               </p>
               <div className="flex gap-6">
-                <a
-                  href="#"
+                <Link
+                  href="/help"
                   className="text-sm text-gray-600 hover:text-gray-900"
                 >
                   Помощь
-                </a>
-                <a
-                  href="#"
+                </Link>
+                <Link
+                  href="/privacy"
                   className="text-sm text-gray-600 hover:text-gray-900"
                 >
                   Конфиденциальность
-                </a>
-                <a
-                  href="#"
+                </Link>
+                <Link
+                  href="/about"
                   className="text-sm text-gray-600 hover:text-gray-900"
                 >
                   О нас
-                </a>
+                </Link>
               </div>
             </div>
           </div>

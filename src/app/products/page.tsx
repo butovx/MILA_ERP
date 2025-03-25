@@ -8,6 +8,7 @@ import {
   TrashIcon,
   ArrowTopRightOnSquareIcon,
   CheckIcon,
+  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { H1, H2, Text, ErrorText } from "@/components/Typography";
 import ProductImage from "@/components/ProductImage";
@@ -16,11 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import JsBarcode from "jsbarcode";
+import { useRouter } from "next/navigation";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
 
   // Состояние для режима выбора
   const [selectionMode, setSelectionMode] = useState(false);
@@ -37,9 +41,17 @@ export default function ProductsPage() {
   const [isAddingToBox, setIsAddingToBox] = useState(false);
   const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
 
+  const router = useRouter();
+
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      filterProducts();
+    }
+  }, [searchQuery, products]);
 
   useEffect(() => {
     if (selectionMode && selectedProducts.length > 0) {
@@ -261,7 +273,10 @@ export default function ProductsPage() {
       header: "Фото",
       render: (product: Product) =>
         product.photo_paths && product.photo_paths.length > 0 ? (
-          <Link href={`/product/${product.id}`}>
+          <Link
+            href={`/product/${product.id}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="h-8 w-8 relative">
               <ProductImage
                 src={product.photo_paths[0]}
@@ -272,7 +287,10 @@ export default function ProductsPage() {
             </div>
           </Link>
         ) : (
-          <Link href={`/product/${product.id}`}>
+          <Link
+            href={`/product/${product.id}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="h-8 w-8 bg-gray-200 rounded-md flex items-center justify-center">
               <span className="text-gray-500 text-xs">Нет</span>
             </div>
@@ -287,6 +305,7 @@ export default function ProductsPage() {
         <Link
           href={`/product/${product.id}`}
           className="text-blue-600 hover:text-blue-800"
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="max-w-[350px] min-w-[200px]" title={product.name}>
             {product.name}
@@ -330,6 +349,7 @@ export default function ProductsPage() {
             href="#"
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               downloadBarcode(product.barcode);
             }}
             className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
@@ -352,6 +372,7 @@ export default function ProductsPage() {
                 key={index}
                 href={`/box-content?barcode=${box.barcode}`}
                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200"
+                onClick={(e) => e.stopPropagation()}
               >
                 {box.name.length > 10
                   ? box.name.slice(0, 10) + "..."
@@ -416,9 +437,32 @@ export default function ProductsPage() {
     }
   };
 
+  // Навигация на страницу товара
+  const handleRowClick = (product: Product) => {
+    router.push(`/product/${product.id}`);
+  };
+
   // Добавляем функцию genId на основе существующего кода
   const genId = () => {
     return Math.random().toString(36).substring(2, 9);
+  };
+
+  const filterProducts = () => {
+    if (!searchQuery.trim()) {
+      setSearchResults(products);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(query) ||
+        product.barcode.includes(query) ||
+        (product.category && product.category.toLowerCase().includes(query)) ||
+        String(product.id).includes(query)
+    );
+
+    setSearchResults(filtered);
   };
 
   if (loading) {
@@ -448,35 +492,57 @@ export default function ProductsPage() {
     <div className="py-8">
       <div className="flex justify-between items-center mb-4">
         <H1>Список товаров</H1>
-        <div className="flex gap-2">
-          <button
-            onClick={toggleSelectionMode}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              selectionMode
-                ? "bg-gray-200 text-gray-800"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            }`}
-          >
-            {selectionMode ? "Выйти из режима выбора" : "Выбрать товары"}
-          </button>
-
-          {selectionMode && (
-            <button
-              onClick={deleteSelectedProducts}
-              disabled={selectedProducts.length === 0}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
-                selectedProducts.length === 0
-                  ? "bg-red-300 cursor-not-allowed text-white"
-                  : "bg-red-600 text-white hover:bg-red-700"
-              }`}
-            >
-              Удалить выбранные ({selectedProducts.length})
-            </button>
+        <div className="flex gap-3">
+          {selectionMode ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={toggleSelectionMode}
+                className="text-sm"
+              >
+                Отменить выбор
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={deleteSelectedProducts}
+                disabled={selectedProducts.length === 0}
+                className="text-sm"
+              >
+                Удалить выбранные ({selectedProducts.length})
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={toggleSelectionMode}
+                className="text-sm"
+              >
+                Выбрать товары
+              </Button>
+              <Link href="/add-product">
+                <Button className="text-sm">+ Добавить товар</Button>
+              </Link>
+            </>
           )}
         </div>
       </div>
 
-      {/* Панель действий с выбранными товарами */}
+      <div className="mb-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск по названию, ID, штрихкоду или категории..."
+            className="pl-10 pr-4 py-2 w-full rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+
       {selectionMode && selectedProducts.length > 0 && (
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <h3 className="text-lg font-medium mb-2">
@@ -564,14 +630,37 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-full mx-auto">
-        <DataTable
-          columns={columns}
-          data={products}
-          emptyMessage="Нет доступных товаров"
-          className="w-full"
-        />
-      </div>
+      {!loading && searchResults.length === 0 && (
+        <div className="mt-6 text-center py-8 bg-gray-50 rounded-lg">
+          <Text className="text-gray-500">
+            {searchQuery.trim()
+              ? "По вашему запросу ничего не найдено"
+              : "Список товаров пуст"}
+          </Text>
+        </div>
+      )}
+
+      <Card className="mt-6">
+        <CardHeader className="pb-2">
+          <CardTitle>
+            {searchQuery.trim() && searchResults.length > 0
+              ? `Найдено товаров: ${searchResults.length}`
+              : `Все товары: ${products.length}`}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={searchResults}
+            emptyMessage={
+              searchQuery.trim()
+                ? "По вашему запросу ничего не найдено"
+                : "Список товаров пуст"
+            }
+            onRowClick={handleRowClick}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

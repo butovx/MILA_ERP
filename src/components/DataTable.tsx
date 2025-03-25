@@ -12,6 +12,7 @@ interface DataTableProps<T> {
   data: T[];
   emptyMessage?: string;
   className?: string;
+  onRowClick?: (item: T) => void;
 }
 
 export default function DataTable<T>({
@@ -19,6 +20,7 @@ export default function DataTable<T>({
   data,
   emptyMessage = "Нет данных",
   className = "",
+  onRowClick,
 }: DataTableProps<T>) {
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
@@ -68,7 +70,13 @@ export default function DataTable<T>({
               </tr>
             ) : (
               data.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
+                <tr
+                  key={index}
+                  className={`hover:bg-gray-50 ${
+                    onRowClick ? "cursor-pointer" : ""
+                  }`}
+                  onClick={() => onRowClick && onRowClick(item)}
+                >
                   {columns.map((column) => (
                     <td
                       key={column.key}
@@ -91,7 +99,13 @@ export default function DataTable<T>({
         ) : (
           <div className="space-y-2">
             {data.map((item, index) => (
-              <div key={index} className="bg-white rounded-lg shadow p-3">
+              <div
+                key={index}
+                className={`bg-white rounded-lg shadow p-3 ${
+                  onRowClick ? "cursor-pointer" : ""
+                }`}
+                onClick={() => onRowClick && onRowClick(item)}
+              >
                 {/* Основная информация */}
                 <div className="space-y-1">
                   {primaryColumns.map((column) => (

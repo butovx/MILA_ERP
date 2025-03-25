@@ -19,7 +19,6 @@ const navItems = [
   { name: "Список товаров", href: "/products", icon: ListBulletIcon },
   { name: "Сканировать штрихкод", href: "/scan", icon: CameraIcon },
   { name: "Управление коробками", href: "/boxes", icon: CubeTransparentIcon },
-  { name: "Обслуживание", href: "/maintenance", icon: WrenchScrewdriverIcon },
 ];
 
 export default function MainNav() {
