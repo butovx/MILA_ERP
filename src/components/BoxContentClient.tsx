@@ -521,14 +521,17 @@ export default function BoxContentClient() {
             </div>
           </div>
 
-          <form onSubmit={handleAddItem} className="space-y-4">
+          <form
+            onSubmit={handleAddItem}
+            className="space-y-4 p-4 bg-gray-50 rounded-lg"
+          >
             <ProductSearch
               onSelect={handleProductSelect}
               onBarcodeInput={handleBarcodeInput}
             />
 
-            <div className="flex gap-4">
-              <div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="w-full sm:w-auto">
                 <label className="block text-sm font-medium text-gray-700">
                   Количество
                 </label>
@@ -544,7 +547,7 @@ export default function BoxContentClient() {
               <button
                 type="submit"
                 disabled={addItemLoading}
-                className="mt-6 inline-flex items-center px-4 py-3 sm:py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 min-h-[44px] sm:min-h-0"
+                className="mt-2 sm:mt-6 inline-flex items-center justify-center px-4 py-3 sm:py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 min-h-[44px] sm:min-h-0 w-full sm:w-auto"
               >
                 {addItemLoading ? "Добавление..." : "Добавить"}
               </button>

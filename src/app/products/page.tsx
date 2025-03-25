@@ -273,10 +273,7 @@ export default function ProductsPage() {
       header: "Фото",
       render: (product: Product) =>
         product.photo_paths && product.photo_paths.length > 0 ? (
-          <Link
-            href={`/product/${product.id}`}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <Link href={`/product/${product.id}`}>
             <div className="h-8 w-8 md:h-8 md:w-8 sm:w-24 sm:h-24 xs:w-20 xs:h-20 relative">
               <ProductImage
                 src={product.photo_paths[0]}
@@ -287,10 +284,7 @@ export default function ProductsPage() {
             </div>
           </Link>
         ) : (
-          <Link
-            href={`/product/${product.id}`}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <Link href={`/product/${product.id}`}>
             <div className="h-8 w-8 md:h-8 md:w-8 sm:w-24 sm:h-24 xs:w-20 xs:h-20 bg-gray-200 rounded-md flex items-center justify-center">
               <span className="text-gray-500 text-xs">Нет</span>
             </div>
@@ -305,7 +299,6 @@ export default function ProductsPage() {
         <Link
           href={`/product/${product.id}`}
           className="text-blue-600 hover:text-blue-800"
-          onClick={(e) => e.stopPropagation()}
         >
           <div className="max-w-[350px] min-w-[200px]" title={product.name}>
             {product.name}
@@ -372,7 +365,6 @@ export default function ProductsPage() {
                 key={index}
                 href={`/box-content?barcode=${box.barcode}`}
                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200"
-                onClick={(e) => e.stopPropagation()}
               >
                 {box.name.length > 10
                   ? box.name.slice(0, 10) + "..."
@@ -435,11 +427,6 @@ export default function ProductsPage() {
         description: "Не удалось скачать штрихкод",
       });
     }
-  };
-
-  // Навигация на страницу товара
-  const handleRowClick = (product: Product) => {
-    router.push(`/product/${product.id}`);
   };
 
   // Добавляем функцию genId на основе существующего кода
@@ -659,7 +646,6 @@ export default function ProductsPage() {
                 ? "По вашему запросу ничего не найдено"
                 : "Список товаров пуст"
             }
-            onRowClick={handleRowClick}
           />
         </CardContent>
       </Card>

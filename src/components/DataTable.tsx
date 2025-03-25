@@ -70,13 +70,7 @@ export default function DataTable<T>({
               </tr>
             ) : (
               data.map((item, index) => (
-                <tr
-                  key={index}
-                  className={`hover:bg-gray-50 transition-colors ${
-                    onRowClick ? "cursor-pointer" : ""
-                  }`}
-                  onClick={() => onRowClick && onRowClick(item)}
-                >
+                <tr key={index} className="hover:bg-gray-50 transition-colors">
                   {columns.map((column) => (
                     <td
                       key={column.key}
@@ -103,24 +97,7 @@ export default function DataTable<T>({
             {data.map((item, index) => (
               <div
                 key={index}
-                className={`bg-white rounded-lg shadow-sm p-3 sm:p-4 border border-gray-100 ${
-                  onRowClick
-                    ? "active:bg-gray-50 transition-colors cursor-pointer"
-                    : ""
-                }`}
-                onClick={() => {
-                  // На мобильном, если есть expandedRow - переключаем его
-                  // И только если уже раскрыто - вызываем onRowClick
-                  if (secondaryColumns.length > 0) {
-                    if (expandedRow === index && onRowClick) {
-                      onRowClick(item);
-                    } else {
-                      setExpandedRow(expandedRow === index ? null : index);
-                    }
-                  } else if (onRowClick) {
-                    onRowClick(item);
-                  }
-                }}
+                className="bg-white rounded-lg shadow-sm p-3 sm:p-4 border border-gray-100"
               >
                 {/* Основная информация */}
                 <div className="flex flex-row items-start gap-3 sm:gap-4">

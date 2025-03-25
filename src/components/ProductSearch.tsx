@@ -57,7 +57,7 @@ export default function ProductSearch({
 
   return (
     <div className="w-full">
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
           placeholder="Поиск по названию..."
@@ -69,7 +69,7 @@ export default function ProductSearch({
           type="text"
           placeholder="Штрихкод..."
           onChange={handleBarcodeChange}
-          className="w-48 px-3 py-2 border rounded-md"
+          className="w-full sm:w-48 px-3 py-2 border rounded-md"
         />
       </div>
 
@@ -77,20 +77,20 @@ export default function ProductSearch({
       {error && <div className="mt-2 text-sm text-red-500">{error}</div>}
 
       {products.length > 0 && (
-        <div className="mt-2 border rounded-md max-h-60 overflow-y-auto">
+        <div className="mt-2 border rounded-md max-h-60 overflow-y-auto w-full">
           {products.map((product) => (
             <div
               key={product.id}
               onClick={() => onSelect(product)}
-              className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
+              className="px-3 py-3 sm:py-2 hover:bg-gray-100 cursor-pointer flex flex-col sm:flex-row sm:items-center sm:justify-between border-b last:border-b-0 min-h-[44px] sm:min-h-0"
             >
-              <div>
-                <div className="font-medium">{product.name}</div>
+              <div className="mb-1 sm:mb-0">
+                <div className="font-medium truncate">{product.name}</div>
                 <div className="text-sm text-gray-500">
                   Штрихкод: {product.barcode}
                 </div>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 sm:ml-2">
                 {product.quantity} шт.
               </div>
             </div>

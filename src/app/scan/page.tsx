@@ -48,18 +48,37 @@ export default function ScanPage() {
     // Загружаем библиотеку Quagga динамически
     const loadQuagga = async () => {
       if (typeof window !== "undefined" && !window.Quagga) {
-        const QuaggaModule = await import("quagga");
-        window.Quagga = QuaggaModule.default;
-      }
+        try {
+          const QuaggaModule = await import("quagga").catch((err) => {
+            console.error("Ошибка импорта библиотеки Quagga:", err);
+            setError(
+              "Не удалось загрузить библиотеку сканирования штрих-кодов"
+            );
+            return { default: null };
+          });
 
-      initializeScanner();
+          if (QuaggaModule && QuaggaModule.default) {
+            window.Quagga = QuaggaModule.default;
+            initializeScanner();
+          }
+        } catch (error) {
+          console.error("Ошибка при загрузке библиотеки Quagga:", error);
+          setError("Не удалось загрузить библиотеку сканирования штрих-кодов");
+        }
+      } else if (window.Quagga) {
+        initializeScanner();
+      }
     };
 
     loadQuagga();
 
     return () => {
       if (typeof window !== "undefined" && window.Quagga) {
-        window.Quagga.stop();
+        try {
+          window.Quagga.stop();
+        } catch (error) {
+          console.error("Ошибка при остановке Quagga в cleanup:", error);
+        }
       }
     };
   }, []);
@@ -161,11 +180,21 @@ export default function ScanPage() {
   };
 
   const initializeScanner = () => {
-    if (typeof window === "undefined" || !window.Quagga) return;
+    if (typeof window === "undefined" || !window.Quagga) {
+      console.error("Quagga не доступна");
+      setError(
+        "Библиотека сканирования не доступна. Пожалуйста, перезагрузите страницу."
+      );
+      return;
+    }
 
     // Останавливаем предыдущую сессию сканирования, если она активна
     if (window.Quagga.initialized) {
-      window.Quagga.stop();
+      try {
+        window.Quagga.stop();
+      } catch (error) {
+        console.error("Ошибка при остановке Quagga:", error);
+      }
     }
 
     // Сбрасываем состояние
@@ -178,169 +207,181 @@ export default function ScanPage() {
 
     // Инициализируем сканер с таймаутом
     setTimeout(() => {
-      window.Quagga.init(
-        {
-          inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: document.querySelector("#scanner-container"),
-            constraints: {
-              facingMode: "environment",
-              width: { min: 450 },
-              height: { min: 300 },
-              aspectRatio: { min: 1, max: 2 },
-              advanced: [
-                {
-                  focusMode: "continuous",
-                  exposureMode: "continuous",
-                  whiteBalanceMode: "continuous",
-                } as any,
-              ],
-            },
-            area: {
-              top: "20%",
-              right: "20%",
-              left: "20%",
-              bottom: "20%",
-            },
-          },
-          locator: {
-            patchSize: "large",
-            halfSample: true,
-          },
-          numOfWorkers: 2,
-          decoder: {
-            readers: [
-              {
-                format: "ean_reader",
-                config: {
-                  // Специальные настройки для EAN-13
-                  normalizeBarSpaceWidth: true, // Нормализация ширины полос
-                  supplements: false, // Выключаем дополнения для увеличения скорости
-                  enableEAN2: false,
-                  enableEAN5: false,
-                  convertEAN2toEAN13: false,
-                },
+      try {
+        window.Quagga.init(
+          {
+            inputStream: {
+              name: "Live",
+              type: "LiveStream",
+              target: document.querySelector("#scanner-container"),
+              constraints: {
+                facingMode: "environment",
+                width: { min: 450 },
+                height: { min: 300 },
+                aspectRatio: { min: 1, max: 2 },
+                advanced: [
+                  {
+                    focusMode: "continuous",
+                    exposureMode: "continuous",
+                    whiteBalanceMode: "continuous",
+                  } as any,
+                ],
               },
-            ],
-            multiple: false,
-            debug: false,
+              area: {
+                top: "20%",
+                right: "20%",
+                left: "20%",
+                bottom: "20%",
+              },
+            },
+            locator: {
+              patchSize: "large",
+              halfSample: true,
+            },
+            numOfWorkers: 2,
+            decoder: {
+              readers: [
+                {
+                  format: "ean_reader",
+                  config: {
+                    // Специальные настройки для EAN-13
+                    normalizeBarSpaceWidth: true, // Нормализация ширины полос
+                    supplements: false, // Выключаем дополнения для увеличения скорости
+                    enableEAN2: false,
+                    enableEAN5: false,
+                    convertEAN2toEAN13: false,
+                  },
+                },
+              ],
+              multiple: false,
+              debug: false,
+            },
+            locate: true,
+            frequency: 2, // Уменьшаем частоту сканирования с 5 до 2 для снижения нагрузки
           },
-          locate: true,
-          frequency: 2, // Уменьшаем частоту сканирования с 5 до 2 для снижения нагрузки
-        },
-        (err: any) => {
-          if (err) {
-            console.error("Ошибка инициализации сканера:", err);
-            setError(
-              "Не удалось инициализировать сканер. Проверьте разрешения камеры."
-            );
-            setIsScanning(false);
-            return;
-          }
+          (err: any) => {
+            if (err) {
+              console.error("Ошибка инициализации сканера:", err);
+              setError(
+                "Не удалось инициализировать сканер. Проверьте разрешения камеры."
+              );
+              setIsScanning(false);
+              return;
+            }
 
-          window.Quagga.initialized = true;
-          window.Quagga.start();
+            window.Quagga.initialized = true;
+            window.Quagga.start();
 
-          // Добавляем обработчик процесса распознавания для подсветки рамки
-          window.Quagga.onProcessed((result: any) => {
-            // Предотвращаем слишком частые обновления состояния
-            if (processingRef.current) return;
+            // Добавляем обработчик процесса распознавания для подсветки рамки
+            window.Quagga.onProcessed((result: any) => {
+              // Предотвращаем слишком частые обновления состояния
+              if (processingRef.current) return;
 
-            processingRef.current = true;
+              processingRef.current = true;
 
-            if (result && result.codeResult && result.codeResult.code) {
-              const code = result.codeResult.code;
+              if (result && result.codeResult && result.codeResult.code) {
+                const code = result.codeResult.code;
 
-              // Проверяем, что код имеет правильную длину и валидную контрольную сумму
-              if (code.length === 13 && validateEAN13(code)) {
-                // Валидный штрихкод найден - включаем зеленую подсветку
-                setDetectingCode(true);
-                setDetectedCode(code);
+                // Проверяем, что код имеет правильную длину и валидную контрольную сумму
+                if (code.length === 13 && validateEAN13(code)) {
+                  // Валидный штрихкод найден - включаем зеленую подсветку
+                  setDetectingCode(true);
+                  setDetectedCode(code);
 
-                // Сбрасываем обнаружение через 500 мс
-                setTimeout(() => {
+                  // Сбрасываем обнаружение через 500 мс
+                  setTimeout(() => {
+                    setDetectingCode(false);
+                    setDetectedCode(null);
+                    processingRef.current = false;
+                  }, 500);
+                } else {
+                  // Невалидный штрихкод - отключаем зеленую подсветку
                   setDetectingCode(false);
                   setDetectedCode(null);
                   processingRef.current = false;
-                }, 500);
+                }
               } else {
-                // Невалидный штрихкод - отключаем зеленую подсветку
+                // Штрихкод не обнаружен - отключаем зеленую подсветку
                 setDetectingCode(false);
                 setDetectedCode(null);
-                processingRef.current = false;
+
+                // Снимаем блокировку обработки после небольшой задержки
+                setTimeout(() => {
+                  processingRef.current = false;
+                }, 100); // Добавляем небольшую задержку для предотвращения слишком частых обновлений
               }
-            } else {
-              // Штрихкод не обнаружен - отключаем зеленую подсветку
-              setDetectingCode(false);
-              setDetectedCode(null);
+            });
 
-              // Снимаем блокировку обработки после небольшой задержки
-              setTimeout(() => {
-                processingRef.current = false;
-              }, 100); // Добавляем небольшую задержку для предотвращения слишком частых обновлений
-            }
-          });
+            // Упрощаем обработчик для более надежной работы
+            window.Quagga.onDetected((result: any) => {
+              try {
+                const code = result.codeResult.code;
+                if (!code || code.length !== 13) return;
 
-          // Упрощаем обработчик для более надежной работы
-          window.Quagga.onDetected((result: any) => {
-            const code = result.codeResult.code;
-            if (!code || code.length !== 13) return;
+                console.log(`Обнаружен код: ${code}`);
 
-            console.log(`Обнаружен код: ${code}`);
+                // Дополнительная проверка для повышения точности
+                // Проверяем, что контрольная сумма штрих-кода верна
+                if (!validateEAN13(code)) {
+                  console.log(`Неверная контрольная сумма для кода: ${code}`);
+                  return;
+                }
 
-            // Дополнительная проверка для повышения точности
-            // Проверяем, что контрольная сумма штрих-кода верна
-            if (!validateEAN13(code)) {
-              console.log(`Неверная контрольная сумма для кода: ${code}`);
-              return;
-            }
+                // Если этот код уже был просканирован, игнорируем повторное сканирование
+                if (lastScannedCode === code) {
+                  console.log(`Код ${code} уже был обработан`);
+                  return;
+                }
 
-            // Если этот код уже был просканирован, игнорируем повторное сканирование
-            if (lastScannedCode === code) {
-              console.log(`Код ${code} уже был обработан`);
-              return;
-            }
+                // Если уведомления заблокированы, просто выходим
+                if (notificationLocked) {
+                  console.log(
+                    `Уведомления заблокированы. Пропускаем обработку кода ${code}`
+                  );
+                  return;
+                }
 
-            // Если уведомления заблокированы, просто выходим
-            if (notificationLocked) {
-              console.log(
-                `Уведомления заблокированы. Пропускаем обработку кода ${code}`
-              );
-              return;
-            }
+                // Сохраняем текущий код как последний просканированный
+                setLastScannedCode(code);
 
-            // Сохраняем текущий код как последний просканированный
-            setLastScannedCode(code);
+                // Блокируем уведомления на некоторое время
+                setNotificationLocked(true);
+                setTimeout(() => {
+                  setNotificationLocked(false);
+                }, 3000); // Блокировка на 3 секунды
 
-            // Блокируем уведомления на некоторое время
-            setNotificationLocked(true);
-            setTimeout(() => {
-              setNotificationLocked(false);
-            }, 3000); // Блокировка на 3 секунды
+                // Проверяем префикс
+                let prefix = code.substring(0, 3);
 
-            // Проверяем префикс
-            let prefix = code.substring(0, 3);
+                // Добавляем в лог сканирования
+                addToScanLog(code);
 
-            // Добавляем в лог сканирования
-            addToScanLog(code);
-
-            // Обрабатываем код в зависимости от префикса
-            if (prefix === "200") {
-              // Для префикса 200 проверяем товары
-              fetchProductOnly(code);
-            } else if (prefix === "300") {
-              // Для префикса 300 проверяем коробки
-              fetchBoxOnly(code);
-            } else {
-              // Для других префиксов показываем ошибку
-              setError(
-                `Неподдерживаемый префикс штрих-кода: ${prefix}. Поддерживаются только 200 и 300.`
-              );
-            }
-          });
-        }
-      );
+                // Обрабатываем код в зависимости от префикса
+                if (prefix === "200") {
+                  // Для префикса 200 проверяем товары
+                  fetchProductOnly(code);
+                } else if (prefix === "300") {
+                  // Для префикса 300 проверяем коробки
+                  fetchBoxOnly(code);
+                } else {
+                  // Для других префиксов показываем ошибку
+                  setError(
+                    `Неподдерживаемый префикс штрих-кода: ${prefix}. Поддерживаются только 200 и 300.`
+                  );
+                }
+              } catch (error) {
+                console.error("Ошибка в обработчике onDetected:", error);
+              }
+            });
+          }
+        );
+      } catch (error) {
+        console.error("Ошибка при инициализации сканера:", error);
+        setError(
+          "Не удалось инициализировать сканер. Пожалуйста, перезагрузите страницу."
+        );
+        setIsScanning(false);
+      }
     }, 1000);
   };
 
@@ -429,8 +470,13 @@ export default function ScanPage() {
 
         // Останавливаем сканер при успешном результате
         if (window.Quagga) {
-          window.Quagga.stop();
-          setIsScanning(false);
+          try {
+            window.Quagga.stop();
+            setIsScanning(false);
+          } catch (error) {
+            console.error("Ошибка при остановке Quagga:", error);
+            setIsScanning(false);
+          }
         }
         return true;
       } else if (productResponse.status === 404) {
@@ -484,8 +530,13 @@ export default function ScanPage() {
 
         // Останавливаем сканер при успешном результате
         if (window.Quagga) {
-          window.Quagga.stop();
-          setIsScanning(false);
+          try {
+            window.Quagga.stop();
+            setIsScanning(false);
+          } catch (error) {
+            console.error("Ошибка при остановке Quagga:", error);
+            setIsScanning(false);
+          }
         }
         return true;
       } else if (boxResponse.status === 404) {
@@ -545,7 +596,13 @@ export default function ScanPage() {
     setError(null);
     setManualBarcode("");
     setLastScannedCode(null); // Сбрасываем последний сканированный код при перезапуске сканера
-    initializeScanner();
+
+    try {
+      initializeScanner();
+    } catch (error) {
+      console.error("Ошибка при перезапуске сканера:", error);
+      setError("Не удалось перезапустить сканер");
+    }
   };
 
   // Функция для проверки контрольной суммы EAN-13
@@ -712,11 +769,17 @@ export default function ScanPage() {
                     variant="secondary"
                     onClick={() => {
                       if (window.Quagga) {
-                        window.Quagga.stop();
+                        try {
+                          window.Quagga.stop();
+                          setIsScanning(false);
+                          // Сбрасываем состояние ошибки при остановке сканера
+                          setError(null);
+                        } catch (error) {
+                          console.error("Ошибка при остановке Quagga:", error);
+                          setIsScanning(false);
+                          setError("Произошла ошибка при остановке сканера");
+                        }
                       }
-                      setIsScanning(false);
-                      // Сбрасываем состояние ошибки при остановке сканера
-                      setError(null);
                     }}
                   >
                     <XMarkIcon className="h-5 w-5 mr-2" />
@@ -728,10 +791,17 @@ export default function ScanPage() {
                     onClick={() => {
                       // Сбросить зум и перезапустить сканер
                       setCameraZoom(1.0);
-                      if (window.Quagga.initialized) {
-                        window.Quagga.stop();
+                      if (window.Quagga && window.Quagga.initialized) {
+                        try {
+                          window.Quagga.stop();
+                          initializeScanner();
+                        } catch (error) {
+                          console.error("Ошибка при сбросе сканера:", error);
+                          setError("Произошла ошибка при сбросе сканера");
+                        }
+                      } else {
+                        initializeScanner();
                       }
-                      initializeScanner();
                     }}
                   >
                     <ArrowPathIcon className="h-5 w-5 mr-2" />

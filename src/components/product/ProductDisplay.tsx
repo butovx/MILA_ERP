@@ -156,20 +156,20 @@ export default function ProductDisplay({ productId }: ProductDisplayProps) {
         <div className="flex space-x-3">
           <Link
             href={`/product/${product.id}/edit`}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="inline-flex items-center px-2 sm:px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 min-w-[36px] sm:min-w-[auto]"
           >
-            <PencilIcon className="h-4 w-4 mr-1" />
-            Редактировать
+            <PencilIcon className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Редактировать</span>
           </Link>
 
           <button
             onClick={handleDelete}
             disabled={isDeleting}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-red-400"
+            className="inline-flex items-center px-2 sm:px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-red-400 min-w-[36px] sm:min-w-[auto]"
           >
             {isDeleting ? (
               <svg
-                className="animate-spin h-4 w-4 mr-1"
+                className="animate-spin h-4 w-4 sm:mr-1"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -189,9 +189,9 @@ export default function ProductDisplay({ productId }: ProductDisplayProps) {
                 ></path>
               </svg>
             ) : (
-              <TrashIcon className="h-4 w-4 mr-1" />
+              <TrashIcon className="h-4 w-4 sm:mr-1" />
             )}
-            Удалить
+            <span className="hidden sm:inline">Удалить</span>
           </button>
         </div>
       </div>
