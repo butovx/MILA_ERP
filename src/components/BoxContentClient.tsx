@@ -347,7 +347,7 @@ export default function BoxContentClient() {
       render: (item: BoxItem) =>
         item.photo_paths && item.photo_paths.length > 0 ? (
           <Link href={`/product/${item.product_id || item.id}`}>
-            <div className="h-9 w-9 relative">
+            <div className="h-9 w-9 md:h-9 md:w-9 sm:w-24 sm:h-24 xs:w-20 xs:h-20 relative">
               <ProductImage
                 src={item.photo_paths[0]}
                 alt={item.name || "Товар"}
@@ -358,7 +358,7 @@ export default function BoxContentClient() {
           </Link>
         ) : (
           <Link href={`/product/${item.product_id || item.id}`}>
-            <div className="h-9 w-9 bg-gray-200 rounded-md flex items-center justify-center">
+            <div className="h-9 w-9 md:h-9 md:w-9 sm:w-24 sm:h-24 xs:w-20 xs:h-20 bg-gray-200 rounded-md flex items-center justify-center">
               <span className="text-gray-400 text-xs">Нет</span>
             </div>
           </Link>
@@ -494,7 +494,7 @@ export default function BoxContentClient() {
             <div className="flex gap-2 mt-4 md:mt-0">
               <button
                 onClick={toggleSelectionMode}
-                className={`px-4 py-2 rounded-md text-sm font-medium ${
+                className={`px-4 py-3 sm:py-2 rounded-md text-sm font-medium min-h-[44px] sm:min-h-0 ${
                   selectionMode
                     ? "bg-gray-200 text-gray-800"
                     : "bg-blue-600 text-white hover:bg-blue-700"
@@ -507,7 +507,7 @@ export default function BoxContentClient() {
                 <button
                   onClick={deleteSelectedItems}
                   disabled={selectedItems.length === 0 || isDeleting}
-                  className={`px-4 py-2 rounded-md text-sm font-medium ${
+                  className={`px-4 py-3 sm:py-2 rounded-md text-sm font-medium min-h-[44px] sm:min-h-0 ${
                     selectedItems.length === 0 || isDeleting
                       ? "bg-red-300 cursor-not-allowed text-white"
                       : "bg-red-600 text-white hover:bg-red-700"
@@ -544,7 +544,7 @@ export default function BoxContentClient() {
               <button
                 type="submit"
                 disabled={addItemLoading}
-                className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="mt-6 inline-flex items-center px-4 py-3 sm:py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 min-h-[44px] sm:min-h-0"
               >
                 {addItemLoading ? "Добавление..." : "Добавить"}
               </button>

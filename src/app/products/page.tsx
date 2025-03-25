@@ -277,7 +277,7 @@ export default function ProductsPage() {
             href={`/product/${product.id}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="h-8 w-8 relative">
+            <div className="h-8 w-8 md:h-8 md:w-8 sm:w-24 sm:h-24 xs:w-20 xs:h-20 relative">
               <ProductImage
                 src={product.photo_paths[0]}
                 alt={product.name}
@@ -291,7 +291,7 @@ export default function ProductsPage() {
             href={`/product/${product.id}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="h-8 w-8 bg-gray-200 rounded-md flex items-center justify-center">
+            <div className="h-8 w-8 md:h-8 md:w-8 sm:w-24 sm:h-24 xs:w-20 xs:h-20 bg-gray-200 rounded-md flex items-center justify-center">
               <span className="text-gray-500 text-xs">Нет</span>
             </div>
           </Link>
@@ -516,12 +516,14 @@ export default function ProductsPage() {
               <Button
                 variant="outline"
                 onClick={toggleSelectionMode}
-                className="text-sm"
+                className="text-sm hidden sm:inline-flex"
               >
                 Выбрать товары
               </Button>
-              <Link href="/add-product">
-                <Button className="text-sm">+ Добавить товар</Button>
+              <Link href="/add-product" className="w-full sm:w-auto">
+                <Button className="text-sm" size="mobile" fullWidthMobile>
+                  + Добавить товар
+                </Button>
               </Link>
             </>
           )}

@@ -3,7 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeftIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowLeftIcon,
+  ArrowDownTrayIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { H1, Label, ErrorText, SuccessText } from "@/components/Typography";
 import ProductImage from "@/components/ProductImage";
 import { Product } from "@/types";
@@ -44,6 +48,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
     message?: string;
     error?: string;
   } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     if (productId) {
@@ -139,6 +144,39 @@ export default function EditProductPage({ params }: EditProductPageProps) {
     }
   };
 
+  const handleDeletePhoto = async (photoPath: string) => {
+    try {
+      setIsDeleting(photoPath);
+
+      const response = await fetch(`/api/products/${productId}/photo`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ photoPath }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Обновляем данные продукта после удаления фото
+        fetchProduct();
+        setResult({
+          message: "Фотография успешно удалена",
+        });
+      } else {
+        setResult({
+          error: result.error || "Ошибка при удалении фотографии",
+        });
+      }
+    } catch (error) {
+      console.error("Ошибка при удалении фотографии:", error);
+      setResult({ error: "Произошла ошибка при удалении фотографии" });
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-8 flex justify-center">
@@ -186,13 +224,26 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             <div className="flex flex-wrap gap-4">
               {product.photo_paths && product.photo_paths.length > 0 ? (
                 product.photo_paths.map((photo, index) => (
-                  <div key={index} className="h-24 w-24 relative">
+                  <div key={index} className="h-24 w-24 relative group">
                     <ProductImage
                       src={photo}
                       alt={`Фото ${index + 1}`}
                       fill
                       className="rounded-md object-cover"
                     />
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePhoto(photo)}
+                      disabled={isDeleting === photo}
+                      className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full m-1 transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      title="Удалить фото"
+                    >
+                      {isDeleting === photo ? (
+                        <span className="animate-pulse">...</span>
+                      ) : (
+                        <XMarkIcon className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 ))
               ) : (

@@ -10,6 +10,8 @@ interface ProductImageProps {
   width?: number;
   height?: number;
   className?: string;
+  priority?: boolean;
+  quality?: number;
 }
 
 export default function ProductImage({
@@ -19,6 +21,8 @@ export default function ProductImage({
   width,
   height,
   className = "",
+  priority = false,
+  quality = 75,
 }: ProductImageProps) {
   const [error, setError] = useState(false);
 
@@ -45,7 +49,10 @@ export default function ProductImage({
         fill
         className={className}
         onError={() => setError(true)}
-        unoptimized={!isRemoteImage} // Отключаем оптимизацию для локальных файлов
+        priority={priority} // Приоритетная загрузка для важных изображений
+        quality={quality} // Настраиваемое качество для сжатия
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        loading={priority ? "eager" : "lazy"}
       />
     );
   }
@@ -58,7 +65,10 @@ export default function ProductImage({
       height={height || 100}
       className={className}
       onError={() => setError(true)}
-      unoptimized={!isRemoteImage} // Отключаем оптимизацию для локальных файлов
+      priority={priority} // Приоритетная загрузка для важных изображений
+      quality={quality} // Настраиваемое качество для сжатия
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      loading={priority ? "eager" : "lazy"}
     />
   );
 }

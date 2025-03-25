@@ -426,7 +426,7 @@ export default function BoxesPage() {
       header: "Товаров",
       sortable: true,
       render: (box: Box) => (
-        <div className="text-center font-medium">{box.items_count || 0}</div>
+        <div className="text-left font-medium">{box.items_count || 0}</div>
       ),
       mobilePriority: 2,
     },
@@ -435,7 +435,7 @@ export default function BoxesPage() {
       header: "Стоимость",
       sortable: true,
       render: (box: Box) => (
-        <div className="text-right font-medium">
+        <div className="text-left font-medium">
           {box.total_price
             ? `${Math.round(box.total_price).toLocaleString("ru-RU")} ₽`
             : "0 ₽"}

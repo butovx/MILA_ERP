@@ -8,6 +8,33 @@
     font-family: "Inter", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent; /* Убирает синее подсвечивание при тапе на мобильных */
+  }
+
+  /* Улучшение поведения для touch-устройств */
+  @media (hover: none) {
+    button,
+    a {
+      cursor: default;
+      touch-action: manipulation;
+    }
+  }
+
+  /* Скрытие scrollbar на iOS */
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Предотвращаем слишком большие фонты на малых экранах */
+  @media (max-width: 480px) {
+    h1 {
+      font-size: calc(1.5rem + 1vw) !important;
+    }
+    h2 {
+      font-size: calc(1.25rem + 0.5vw) !important;
+    }
   }
 }
 
@@ -40,6 +67,11 @@
   --button-primary-text: #ffffff;
   --card-bg: #ffffff;
   --card-border: #f0f3f9;
+
+  /* Мобильные переменные */
+  --mobile-padding: 1rem;
+  --mobile-card-padding: 0.75rem;
+  --mobile-touch-target: 44px; /* Минимальный размер области для тача */
 }
 
 @theme inline {

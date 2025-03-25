@@ -24,6 +24,7 @@ const buttonVariants = cva(
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-12 rounded-md px-6 text-base",
         icon: "h-10 w-10",
+        mobile: "min-h-[48px] h-auto py-3 sm:py-2 px-4",
       },
     },
     defaultVariants: {
@@ -37,14 +38,28 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  fullWidthMobile?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      fullWidthMobile = false,
+      ...props
+    },
+    ref
+  ) => {
     const Comp = asChild ? "button" : "button";
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          fullWidthMobile && "w-full sm:w-auto"
+        )}
         ref={ref}
         {...props}
       />
