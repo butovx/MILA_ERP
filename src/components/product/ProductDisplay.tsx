@@ -6,12 +6,11 @@ import { useRouter } from "next/navigation";
 import { Product } from "@/types";
 import {
   ArrowLeftIcon,
-  ArrowRightIcon,
   ArrowDownTrayIcon,
   PencilIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import ProductImage from "@/components/ProductImage";
+import ProductFullImage from "@/components/ProductFullImage";
 import Barcode from "@/components/Barcode";
 
 interface ProductDisplayProps {
@@ -23,7 +22,6 @@ export default function ProductDisplay({ productId }: ProductDisplayProps) {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
@@ -47,21 +45,6 @@ export default function ProductDisplay({ productId }: ProductDisplayProps) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const nextPhoto = () => {
-    if (!product || !product.photo_paths || product.photo_paths.length <= 1)
-      return;
-    setCurrentPhotoIndex((currentPhotoIndex + 1) % product.photo_paths.length);
-  };
-
-  const prevPhoto = () => {
-    if (!product || !product.photo_paths || product.photo_paths.length <= 1)
-      return;
-    setCurrentPhotoIndex(
-      (currentPhotoIndex - 1 + product.photo_paths.length) %
-        product.photo_paths.length
-    );
   };
 
   const downloadBarcode = () => {
@@ -198,62 +181,12 @@ export default function ProductDisplay({ productId }: ProductDisplayProps) {
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="md:flex">
-          {/* Блок с фотографиями */}
+          {/* Блок с фотографиями - заменен на новый компонент */}
           <div className="md:w-1/2 p-6">
-            <div className="relative h-80 bg-gray-100 rounded-lg overflow-hidden">
-              {product.photo_paths && product.photo_paths.length > 0 ? (
-                <>
-                  <ProductImage
-                    src={product.photo_paths[currentPhotoIndex]}
-                    alt={product.name}
-                    fill
-                    className="object-contain"
-                  />
-                  {product.photo_paths.length > 1 && (
-                    <>
-                      <button
-                        onClick={prevPhoto}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-75 rounded-full p-1 hover:bg-opacity-100"
-                      >
-                        <ArrowLeftIcon className="h-6 w-6 text-gray-700" />
-                      </button>
-                      <button
-                        onClick={nextPhoto}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-75 rounded-full p-1 hover:bg-opacity-100"
-                      >
-                        <ArrowRightIcon className="h-6 w-6 text-gray-700" />
-                      </button>
-                    </>
-                  )}
-                </>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <span className="text-gray-400">Нет фотографий</span>
-                </div>
-              )}
-            </div>
-
-            {/* Миниатюры */}
-            {product.photo_paths && product.photo_paths.length > 1 && (
-              <div className="mt-4 flex space-x-2 overflow-x-auto">
-                {product.photo_paths.map((photo, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentPhotoIndex(index)}
-                    className={`h-16 w-16 relative flex-shrink-0 rounded-md overflow-hidden ${
-                      index === currentPhotoIndex ? "ring-2 ring-blue-500" : ""
-                    }`}
-                  >
-                    <ProductImage
-                      src={photo}
-                      alt={`Миниатюра ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
+            <ProductFullImage
+              images={product.photo_paths || []}
+              alt={product.name}
+            />
           </div>
 
           {/* Блок с информацией */}

@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    unoptimized: true, // Отключаем оптимизацию для локальных файлов
+    unoptimized: false,
   },
   experimental: {
     optimizeCss: true,

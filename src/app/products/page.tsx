@@ -9,9 +9,12 @@ import {
   ArrowTopRightOnSquareIcon,
   CheckIcon,
   MagnifyingGlassIcon,
+  Squares2X2Icon,
+  TableCellsIcon,
 } from "@heroicons/react/24/outline";
 import { H1, H2, Text, ErrorText } from "@/components/Typography";
 import ProductImage from "@/components/ProductImage";
+import ProductCard from "@/components/ProductCard";
 import DataTable from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +43,9 @@ export default function ProductsPage() {
   const [isLoadingBoxes, setIsLoadingBoxes] = useState(false);
   const [isAddingToBox, setIsAddingToBox] = useState(false);
   const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
+
+  // Добавляем состояние для вида отображения: таблица или карточки
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
   const router = useRouter();
 
@@ -452,6 +458,11 @@ export default function ProductsPage() {
     setSearchResults(filtered);
   };
 
+  // Функция для переключения режима отображения
+  const toggleViewMode = () => {
+    setViewMode(viewMode === "table" ? "grid" : "table");
+  };
+
   if (loading) {
     return (
       <div className="py-8 flex justify-center">
@@ -476,44 +487,56 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="py-8">
-      <div className="flex justify-between items-center mb-4">
-        <H1>Список товаров</H1>
-        <div className="flex gap-3">
-          {selectionMode ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={toggleSelectionMode}
-                className="text-sm"
-              >
-                Отменить выбор
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <H1>Товары</H1>
+        <div className="flex space-x-3">
+          <Button
+            variant="outline"
+            onClick={toggleViewMode}
+            aria-label={`Переключить на ${
+              viewMode === "table" ? "сетку" : "таблицу"
+            }`}
+          >
+            {viewMode === "table" ? (
+              <Squares2X2Icon className="h-4 w-4 mr-1" />
+            ) : (
+              <TableCellsIcon className="h-4 w-4 mr-1" />
+            )}
+            <span className="hidden sm:inline">
+              {viewMode === "table" ? "Сетка" : "Таблица"}
+            </span>
+          </Button>
+
+          {!selectionMode ? (
+            <Button variant="outline" onClick={toggleSelectionMode}>
+              <CheckIcon className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Выбрать</span>
+            </Button>
+          ) : (
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={toggleSelectionMode}>
+                <span className="text-sm">Отмена</span>
               </Button>
               <Button
                 variant="destructive"
                 onClick={deleteSelectedProducts}
                 disabled={selectedProducts.length === 0}
-                className="text-sm"
               >
-                Удалить выбранные ({selectedProducts.length})
+                <TrashIcon className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">
+                  Удалить ({selectedProducts.length})
+                </span>
               </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                onClick={toggleSelectionMode}
-                className="text-sm hidden sm:inline-flex"
-              >
-                Выбрать товары
-              </Button>
-              <Link href="/add-product" className="w-full sm:w-auto">
-                <Button className="text-sm" size="mobile" fullWidthMobile>
-                  + Добавить товар
-                </Button>
-              </Link>
-            </>
+            </div>
           )}
+
+          <Button asChild>
+            <Link href="/add-product">
+              <PencilIcon className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Добавить товар</span>
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -629,26 +652,33 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <Card className="mt-6">
-        <CardHeader className="pb-2">
-          <CardTitle>
-            {searchQuery.trim() && searchResults.length > 0
-              ? `Найдено товаров: ${searchResults.length}`
-              : `Все товары: ${products.length}`}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={searchResults}
-            emptyMessage={
-              searchQuery.trim()
-                ? "По вашему запросу ничего не найдено"
-                : "Список товаров пуст"
-            }
-          />
-        </CardContent>
-      </Card>
+      {loading ? (
+        <div className="py-8 text-center">
+          <div className="inline-block animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+          <p className="mt-2 text-gray-600">Загрузка списка товаров...</p>
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 p-4 rounded-md mt-4">
+          <ErrorText>{error}</ErrorText>
+        </div>
+      ) : searchResults.length === 0 ? (
+        <div className="bg-blue-50 p-4 rounded-md mt-4">
+          <Text>Товары не найдены.</Text>
+        </div>
+      ) : (
+        <>
+          {/* Условный рендеринг в зависимости от режима отображения */}
+          {viewMode === "table" ? (
+            <DataTable columns={columns} data={searchResults} />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {searchResults.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
