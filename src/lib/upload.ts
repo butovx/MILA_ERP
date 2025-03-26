@@ -43,12 +43,28 @@ export async function uploadFile(file: File): Promise<string> {
     // Создаем директорию для загрузок, если она не существует
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log(`Создана директория для загрузок: ${uploadsDir}`);
+    }
+
+    // Проверяем права на запись
+    try {
+      fs.accessSync(uploadsDir, fs.constants.W_OK);
+    } catch (err) {
+      console.error(`Нет прав на запись в директорию ${uploadsDir}:`, err);
+      // Пытаемся исправить права
+      try {
+        fs.chmodSync(uploadsDir, 0o777);
+        console.log(`Права доступа изменены для ${uploadsDir}`);
+      } catch (chmodErr) {
+        console.error(`Не удалось изменить права доступа:`, chmodErr);
+      }
     }
 
     // Сохраняем файл
     const filePath = path.join(uploadsDir, fileName);
     const buffer = Buffer.from(await file.arrayBuffer());
     fs.writeFileSync(filePath, buffer);
+    console.log(`Файл сохранен: ${filePath}`);
 
     // Возвращаем URL к файлу
     return `/uploads/${fileName}`;
@@ -89,6 +105,7 @@ export async function deleteFile(filePath: string): Promise<boolean> {
 
       if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
+        console.log(`Файл удален: ${fullPath}`);
         return true;
       } else {
         console.warn(`Файл ${fullPath} не найден`);

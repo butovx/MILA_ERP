@@ -29,6 +29,9 @@ export default function ProductImage({
   // Проверяем локальный или удаленный URL
   const isRemoteImage = src && src.startsWith("http");
 
+  // Проверка на файл изображения из uploads
+  const isUploadsImage = src && src.startsWith("/uploads/");
+
   // Если произошла ошибка загрузки, показываем плейсхолдер
   if (error) {
     return (
@@ -41,6 +44,39 @@ export default function ProductImage({
     );
   }
 
+  // Для изображений из uploads используем прямой URL
+  if (isUploadsImage && !isRemoteImage) {
+    if (fill) {
+      return (
+        <div
+          className={`relative ${className}`}
+          style={{ width: "100%", height: "100%" }}
+        >
+          <img
+            src={`${src}`}
+            alt={alt}
+            className={`object-cover absolute inset-0 ${className}`}
+            onError={() => setError(true)}
+            loading={priority ? "eager" : "lazy"}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={`${src}`}
+        alt={alt}
+        width={width}
+        height={height}
+        className={className}
+        onError={() => setError(true)}
+        loading={priority ? "eager" : "lazy"}
+      />
+    );
+  }
+
+  // Для остальных изображений используем Next.js Image
   if (fill) {
     return (
       <Image

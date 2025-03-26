@@ -18,8 +18,12 @@ export async function POST(request: NextRequest) {
     const photoEntries = formData.getAll("photos");
 
     for (const photoEntry of photoEntries) {
-      if (photoEntry instanceof File && photoEntry.size > 0) {
-        files.push(photoEntry);
+      // Проверяем, что это объект, похожий на файл (имеет size) и не пустой
+      // В Node.js объекты из formData для файлов реализуют интерфейс Blob
+      if (typeof photoEntry === 'object' && photoEntry && 'size' in photoEntry && photoEntry.size > 0) {
+        // Приводим к типу File, так как uploadFiles ожидает File[]
+        // Объекты из formData достаточно похожи на File для работы
+        files.push(photoEntry as File);
       }
     }
 

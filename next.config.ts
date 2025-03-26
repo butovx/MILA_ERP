@@ -8,10 +8,14 @@ const certPath = path.resolve(__dirname, "certificates/localhost.pem");
 const httpsEnabled = fs.existsSync(keyPath) && fs.existsSync(certPath);
 
 const nextConfig: NextConfig = {
-  output: 'standalone', // Добавляем эту строку
+  output: "standalone", // Для использования в Docker
   reactStrictMode: true,
   images: {
     remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "**",
+      },
       {
         protocol: "https",
         hostname: "**",
@@ -21,6 +25,11 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 31536000, // 1 год - максимально длительное кеширование
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    domains: ["localhost"],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    unoptimized: true, // Отключаем оптимизацию для локальных файлов
   },
   experimental: {
     optimizeCss: true,
