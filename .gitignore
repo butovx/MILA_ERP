@@ -42,3 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 public/uploads
+
+# Docker
+.dockerignore
+# Add any other Docker-related files or directories if needed

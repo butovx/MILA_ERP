@@ -8,6 +8,7 @@ const certPath = path.resolve(__dirname, "certificates/localhost.pem");
 const httpsEnabled = fs.existsSync(keyPath) && fs.existsSync(certPath);
 
 const nextConfig: NextConfig = {
+  output: 'standalone', // Добавляем эту строку
   reactStrictMode: true,
   images: {
     remotePatterns: [

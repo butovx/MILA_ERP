@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Передаем DATABASE_URL в процесс сборки
+        - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "3000:3000"
+    environment:
+      # Эти переменные должны соответствовать настройкам в вашем приложении Next.js
+      # для подключения к базе данных.
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/shop
+      # Добавьте другие переменные окружения, необходимые для вашего Next.js приложения
+      # NEXT_PUBLIC_API_URL: http://localhost:3000/api
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shop
+    volumes:
+      # Том для сохранения данных PostgreSQL между перезапусками контейнера
+      - postgres_data:/var/lib/postgresql/data
+      # Опционально: монтирование SQL-скрипта для инициализации схемы
+      - ./psql/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      # Опционально: открыть порт для доступа к БД с хост-машины (например, для отладки)
+      - "5432:5432"
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

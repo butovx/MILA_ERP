@@ -1,21 +1,20 @@
 import { Pool } from "pg";
 
-if (
-  !process.env.DB_USER ||
-  !process.env.DB_HOST ||
-  !process.env.DB_NAME ||
-  !process.env.DB_PASSWORD ||
-  !process.env.DB_PORT
-) {
-  throw new Error("Необходимо настроить переменные окружения для базы данных");
+// Используем DATABASE_URL для подключения, как определено в docker-compose.yml
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error(
+    "Переменная окружения DATABASE_URL не установлена. Убедитесь, что она задана в вашем .env файле или в среде выполнения.",
+  );
 }
 
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: parseInt(process.env.DB_PORT, 10),
+  connectionString: connectionString,
+  // Опционально: добавьте другие настройки пула, если необходимо
+  // ssl: {
+  //   rejectUnauthorized: false // Может потребоваться для некоторых облачных баз данных
+  // }
 });
 
 export default pool;
