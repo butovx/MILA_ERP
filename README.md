@@ -1,185 +1,220 @@
 # Mila ERP System
 
-Современная ERP-система для управления складом с элегантным светлым дизайном, построенная на Next.js 15, React 19, TypeScript и PostgreSQL.
+A modern ERP system for warehouse management with an elegant light design, built on Next.js 15, React 19, TypeScript, and PostgreSQL.
 
-## Особенности
+## Features
 
-- 📦 Управление коробками
+- 📦 Box Management
 
-  - Создание и управление коробками
-  - Отслеживание содержимого
-  - Генерация штрих-кодов для коробок
-  - Сканирование для быстрого доступа
+  - Create and manage boxes
+  - Track contents
+  - Generate barcodes for boxes
+  - Scan for quick access
 
-- 🏷️ Управление продуктами
+- 🏷️ Product Management
 
-  - Добавление и редактирование продуктов
-  - Генерация штрих-кодов для продуктов
-  - Отслеживание количества
-  - Категоризация продуктов
-  - Прикрепление фотографий
+  - Add and edit products
+  - Generate barcodes for products
+  - Track quantities
+  - Categorize products
+  - Attach photos
 
-- 📱 Сканирование штрих-кодов
+- 📱 Barcode Scanning
 
-  - Сканирование штрих-кодов в реальном времени
-  - Поддержка формата EAN-13
-  - Валидация префиксов (200 для коробок, 300 для продуктов)
-  - Ручной ввод штрих-кода
-  - История сканирования
+  - Real-time barcode scanning
+  - EAN-13 format support
+  - Prefix validation (200 for boxes, 300 for products)
+  - Manual barcode entry
+  - Scan history
 
-- 🔍 Поиск и фильтрация
+- 🔍 Search and Filtering
 
-  - Поиск продуктов по названию или штрих-коду
-  - Фильтрация продуктов по категории
-  - Расширенные параметры поиска
+  - Search products by name or barcode
+  - Filter products by category
+  - Advanced search parameters
 
-- 📊 Отчеты
-  - Отчеты о содержимом коробок
-  - Отчеты о запасах продуктов
-  - Функционал экспорта
+- 📊 Reports
+  - Box content reports
+  - Product inventory reports
+  - Export functionality
 
-## Стек технологий
+## Technology Stack
 
-- **Фронтенд:**
+- **Frontend:**
 
   - Next.js 15 (App Router)
   - React 19
   - TypeScript
-  - Tailwind CSS с современной светлой темой
-  - HeadlessUI для компонентов пользовательского интерфейса
-  - Framer Motion для анимаций
-  - React Hot Toast для уведомлений
-  - Recharts для визуализации данных
-  - QuaggaJS для сканирования штрих-кодов
-  - Heroicons для иконок
-  - BWIP-JS для генерации штрих-кодов
+  - Tailwind CSS with modern light theme
+  - HeadlessUI for UI components
+  - Framer Motion for animations
+  - React Hot Toast for notifications
+  - Recharts for data visualization
+  - QuaggaJS for barcode scanning
+  - Heroicons for icons
 
-- **Бэкенд:**
+- **Backend:**
 
   - Next.js API Routes
   - PostgreSQL
   - TypeScript
 
-- **Инструменты разработки:**
+- **Development Tools:**
   - ESLint
   - Prettier
   - TypeScript
 
-## Дизайн
+## Design
 
-Система использует современный светлый дизайн с акцентом на удобство использования:
+The system uses a modern light design with a focus on usability:
 
-- Единая светлая тема для лучшей читаемости и стильного вида
-- Тщательно продуманные отступы и типографика
-- Мягкие тени и современные скругленные углы
-- Семантическая цветовая схема:
-  - Primary: оттенки синего для основных действий
-  - Accent: зеленые оттенки для подтверждения и успеха
-  - Warning: оранжевые оттенки для предупреждений
-  - Danger: красные оттенки для ошибок и удаления
+- Unified light theme for better readability and stylish appearance
+- Carefully thought-out spacing and typography
+- Soft shadows and modern rounded corners
+- Semantic color scheme:
+  - Primary: blue shades for main actions
+  - Accent: green shades for confirmation and success
+  - Warning: orange shades for warnings
+  - Danger: red shades for errors and deletion
 
-## Предварительные требования
+## Running with Docker
 
-- Node.js 18 или выше
-- PostgreSQL 14 или выше
-- npm или yarn
+The easiest way to run the application is using Docker and Docker Compose:
 
-## Установка
-
-1. Клонируйте репозиторий:
+1. Clone the repository:
 
    ```bash
-   git clone https://github.com/butovx/milaerp.git
-   cd milaerp
+   git clone https://github.com/butovx/MILA_ERP.git
+   cd MILA_ERP
    ```
 
-2. Установите зависимости:
-
-   ```bash
-   npm install
-   # или
-   yarn install
-   ```
-
-3. Настройте переменные окружения:
+2. Configure environment variables:
 
    ```bash
    cp .env.example .env
    ```
 
-   Отредактируйте `.env` с вашими учетными данными базы данных и другими настройками.
+   Edit `.env` with your database credentials and other settings if needed.
 
-4. Настройте базу данных:
+3. Start the Docker containers:
 
    ```bash
-   npx prisma generate
-   npx prisma db push
+   docker-compose up -d
    ```
 
-5. Запустите сервер разработки:
+4. Access the application:
+   - Web interface: https://localhost
+   - API: https://localhost/api/\*
+   - Database: localhost:5432 (accessible from host machine for debugging)
+
+## Manual Setup (Development)
+
+If you prefer to run the application without Docker:
+
+1. Prerequisites:
+
+   - Node.js 18 or higher
+   - PostgreSQL 14 or higher
+   - npm or yarn
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Configure environment variables:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` with your database credentials.
+
+4. Set up SSL certificates for local HTTPS:
+
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+   Generate SSL certificates or use the provided ones in the /certificates directory.
+
+5. Run the development server:
 
    ```bash
    npm run dev
-   # или
+   # or
    yarn dev
    ```
 
-6. Откройте [http://localhost:3000](http://localhost:3000) в вашем браузере.
+6. Open [https://localhost:443](https://localhost:443) in your browser.
 
-## Структура проекта
+## Project Structure
 
 ```
 src/
-├── app/                    # Каталог Next.js app
-│   ├── api/               # API-маршруты
-│   ├── boxes/             # Страницы управления коробками
-│   ├── products/          # Страницы управления продуктами
-│   └── scan/              # Страница сканирования штрих-кода
-├── components/            # Многоразовые компоненты
-├── lib/                   # Служебные функции и конфигурации
-├── utils/                 # Вспомогательные утилиты
-├── hooks/                 # Пользовательские хуки React
-└── types/                 # Определения типов TypeScript
+├── app/                    # Next.js app directory
+│   ├── api/                # API routes
+│   ├── boxes/              # Box management pages
+│   ├── products/           # Product management pages
+│   └── scan/               # Barcode scanning page
+├── components/             # Reusable components
+├── lib/                    # Utilities and configurations
+├── utils/                  # Helper utilities
+├── hooks/                  # Custom React hooks
+└── types/                  # TypeScript type definitions
 ```
 
-## API-документация
+## API Documentation
 
-### Продукты
+### Products
 
-- `GET /api/products` - Получить все продукты
-- `GET /api/products/[id]` - Получить продукт по ID
-- `GET /api/products/barcode/[code]` - Получить продукт по штрих-коду
-- `POST /api/products` - Создать новый продукт
-- `PUT /api/products/[id]` - Обновить продукт
-- `DELETE /api/products/[id]` - Удалить продукт
+- `GET /api/products` - Get all products
+- `GET /api/products/[id]` - Get product by ID
+- `GET /api/products/barcode/[code]` - Get product by barcode
+- `POST /api/products` - Create a new product
+- `PUT /api/products/[id]` - Update a product
+- `DELETE /api/products/[id]` - Delete a product
 
-### Коробки
+### Boxes
 
-- `GET /api/boxes` - Получить все коробки
-- `GET /api/boxes/[id]` - Получить коробку по ID
-- `GET /api/boxes/barcode/[code]` - Получить коробку по штрих-коду
-- `POST /api/boxes` - Создать новую коробку
-- `PUT /api/boxes/[id]` - Обновить коробку
-- `DELETE /api/boxes/[id]` - Удалить коробку
+- `GET /api/boxes` - Get all boxes
+- `GET /api/boxes/[id]` - Get box by ID
+- `GET /api/boxes/barcode/[code]` - Get box by barcode
+- `POST /api/boxes` - Create a new box
+- `PUT /api/boxes/[id]` - Update a box
+- `DELETE /api/boxes/[id]` - Delete a box
 
-### Элементы коробки
+### Box Items
 
-- `GET /api/box-items` - Получить все элементы коробки
-- `POST /api/box-items` - Добавить элемент в коробку
-- `DELETE /api/box-items/[boxId]/[productId]` - Удалить элемент из коробки
+- `GET /api/box-items` - Get all box items
+- `POST /api/box-items` - Add an item to a box
+- `DELETE /api/box-items/[boxId]/[productId]` - Remove an item from a box
 
-## Вклад в проект
+## Docker Architecture
 
-1. Сделайте форк репозитория
-2. Создайте ветку для вашей функции (`git checkout -b feature/amazing-feature`)
-3. Зафиксируйте ваши изменения (`git commit -m 'Add some amazing feature'`)
-4. Отправьте в ветку (`git push origin feature/amazing-feature`)
-5. Откройте Pull Request
+The application consists of three main services:
 
-## Лицензия
+1. **Web (Next.js)**: The application server running Next.js
+2. **Database (PostgreSQL)**: The database server
+3. **Nginx**: Reverse proxy that handles SSL termination and static file serving
 
-Этот проект лицензирован по MIT License - см. файл [LICENSE](LICENSE) для деталей.
+Database data is persisted through Docker volumes.
 
-## Поддержка
+## Contributing
 
-Для получения поддержки, пожалуйста, откройте issue в GitHub-репозитории или свяжитесь с командой разработчиков.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For support, please open an issue in the GitHub repository or contact the development team.
